@@ -83,23 +83,23 @@ fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
 #[cfg(target_os = "macos")]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-    let (atime_secs, atime_nanos) = time_from_system_time(&attr.atime).unwrap();
-    let (mtime_secs, mtime_nanos) = time_from_system_time(&attr.mtime).unwrap();
-    let (ctime_secs, ctime_nanos) = time_from_system_time(&attr.ctime).unwrap();
-    let (crtime_secs, crtime_nanos) = time_from_system_time(&attr.crtime).unwrap();
+    let (a_time_secs, a_time_nanos) = time_from_system_time(&attr.atime).unwrap();
+    let (m_time_secs, m_time_nanos) = time_from_system_time(&attr.mtime).unwrap();
+    let (c_time_secs, c_time_nanos) = time_from_system_time(&attr.ctime).unwrap();
+    let (create_time_secs, create_time_nanos) = time_from_system_time(&attr.crtime).unwrap();
 
     fuse_attr {
         ino: attr.ino,
         size: attr.size,
         blocks: attr.blocks,
-        atime: atime_secs,
-        mtime: mtime_secs,
-        ctime: ctime_secs,
-        crtime: crtime_secs,
-        atimensec: atime_nanos,
-        mtimensec: mtime_nanos,
-        ctimensec: ctime_nanos,
-        crtimensec: crtime_nanos,
+        atime: a_time_secs,
+        mtime: m_time_secs,
+        ctime: c_time_secs,
+        crtime: create_time_secs,
+        atimensec: a_time_nanos,
+        mtimensec: m_time_nanos,
+        ctimensec: c_time_nanos,
+        crtimensec: create_time_nanos,
         mode: mode_from_kind_and_perm(attr.kind, attr.perm),
         nlink: attr.nlink,
         uid: attr.uid,

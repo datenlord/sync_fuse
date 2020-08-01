@@ -60,6 +60,59 @@ impl<'a> Request<'a> {
     /// This calls the appropriate filesystem operation method for the
     /// request and sends back the returned reply to the kernel
     pub fn dispatch<FS: Filesystem>(&self, se: &mut Session<FS>) {
+        #[cfg(target_os = "macos")]
+        #[inline]
+        fn get_macos_setattr(
+            arg: &fuse_setattr_in,
+        ) -> (
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<u32>,
+        ) {
+            let crtime = match arg.valid & FATTR_CRTIME {
+                0 => None,
+                _ => Some(
+                    match UNIX_EPOCH.checked_add(Duration::new(arg.crtime, arg.crtimensec)) {
+                        Some(crt) => crt,
+                        None => SystemTime::now(),
+                    },
+                ), // _ => Some(UNIX_EPOCH + Duration::new(arg.crtime, arg.crtimensec)),
+            };
+            let chgtime = match arg.valid & FATTR_CHGTIME {
+                0 => None,
+                _ => Some(
+                    match UNIX_EPOCH.checked_add(Duration::new(arg.chgtime, arg.chgtimensec)) {
+                        Some(cht) => cht,
+                        None => SystemTime::now(),
+                    },
+                ), // _ => Some(UNIX_EPOCH + Duration::new(arg.chgtime, arg.chgtimensec)),
+            };
+            let bkuptime = match arg.valid & FATTR_BKUPTIME {
+                0 => None,
+                _ => Some(
+                    match UNIX_EPOCH.checked_add(Duration::new(arg.bkuptime, arg.bkuptimensec)) {
+                        Some(bkt) => bkt,
+                        None => SystemTime::now(),
+                    },
+                ), // _ => Some(UNIX_EPOCH + Duration::new(arg.bkuptime, arg.bkuptimensec)),
+            };
+            let flags = match arg.valid & FATTR_FLAGS {
+                0 => None,
+                _ => Some(arg.flags),
+            };
+            (crtime, chgtime, bkuptime, flags)
+        }
+        #[cfg(target_os = "macos")]
+        #[inline]
+        fn get_position(arg: &fuse_setxattr_in) -> u32 {
+            arg.position
+        }
+        #[cfg(not(target_os = "macos"))]
+        #[inline]
+        fn get_position(_arg: &fuse_setxattr_in) -> u32 {
+            0
+        }
         debug!("{}", self.request);
 
         match self.request.operation() {
@@ -144,11 +197,11 @@ impl<'a> Request<'a> {
                     0 => None,
                     _ => Some(arg.mode),
                 };
-                let uid = match arg.valid & FATTR_UID {
+                let user_id = match arg.valid & FATTR_UID {
                     0 => None,
                     _ => Some(arg.uid),
                 };
-                let gid = match arg.valid & FATTR_GID {
+                let group_id = match arg.valid & FATTR_GID {
                     0 => None,
                     _ => Some(arg.gid),
                 };
@@ -160,7 +213,7 @@ impl<'a> Request<'a> {
                     0 => None,
                     _ => Some(UNIX_EPOCH + Duration::new(arg.atime, arg.atimensec)),
                 };
-                let mtime = match arg.valid & FATTR_MTIME {
+                let m_time = match arg.valid & FATTR_MTIME {
                     0 => None,
                     _ => Some(UNIX_EPOCH + Duration::new(arg.mtime, arg.mtimensec)),
                 };
@@ -168,54 +221,6 @@ impl<'a> Request<'a> {
                     0 => None,
                     _ => Some(arg.fh),
                 };
-                #[cfg(target_os = "macos")]
-                #[inline]
-                fn get_macos_setattr(
-                    arg: &fuse_setattr_in,
-                ) -> (
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<u32>,
-                ) {
-                    let crtime = match arg.valid & FATTR_CRTIME {
-                        0 => None,
-                        _ => Some(
-                            match UNIX_EPOCH.checked_add(Duration::new(arg.crtime, arg.crtimensec))
-                            {
-                                Some(crt) => crt,
-                                None => SystemTime::now(),
-                            },
-                        ), // _ => Some(UNIX_EPOCH + Duration::new(arg.crtime, arg.crtimensec)),
-                    };
-                    let chgtime = match arg.valid & FATTR_CHGTIME {
-                        0 => None,
-                        _ => Some(
-                            match UNIX_EPOCH
-                                .checked_add(Duration::new(arg.chgtime, arg.chgtimensec))
-                            {
-                                Some(cht) => cht,
-                                None => SystemTime::now(),
-                            },
-                        ), // _ => Some(UNIX_EPOCH + Duration::new(arg.chgtime, arg.chgtimensec)),
-                    };
-                    let bkuptime = match arg.valid & FATTR_BKUPTIME {
-                        0 => None,
-                        _ => Some(
-                            match UNIX_EPOCH
-                                .checked_add(Duration::new(arg.bkuptime, arg.bkuptimensec))
-                            {
-                                Some(bkt) => bkt,
-                                None => SystemTime::now(),
-                            },
-                        ), // _ => Some(UNIX_EPOCH + Duration::new(arg.bkuptime, arg.bkuptimensec)),
-                    };
-                    let flags = match arg.valid & FATTR_FLAGS {
-                        0 => None,
-                        _ => Some(arg.flags),
-                    };
-                    (crtime, chgtime, bkuptime, flags)
-                }
                 #[cfg(not(target_os = "macos"))]
                 #[inline]
                 fn get_macos_setattr(
@@ -233,11 +238,11 @@ impl<'a> Request<'a> {
                     self,
                     self.request.nodeid(),
                     mode,
-                    uid,
-                    gid,
+                    user_id,
+                    group_id,
                     size,
                     atime,
-                    mtime,
+                    m_time,
                     fh,
                     crtime,
                     chgtime,
@@ -394,16 +399,6 @@ impl<'a> Request<'a> {
             }
             ll_request::Operation::SetXAttr { arg, name, value } => {
                 assert!(value.len() == arg.size as usize);
-                #[cfg(target_os = "macos")]
-                #[inline]
-                fn get_position(arg: &fuse_setxattr_in) -> u32 {
-                    arg.position
-                }
-                #[cfg(not(target_os = "macos"))]
-                #[inline]
-                fn get_position(_arg: &fuse_setxattr_in) -> u32 {
-                    0
-                }
                 se.filesystem.setxattr(
                     self,
                     self.request.nodeid(),

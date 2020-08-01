@@ -40,6 +40,8 @@ fn main() {
 }
 
 #[cfg(test)]
+#[allow(clippy::dbg_macro)]
+#[allow(unsafe_code)]
 mod test {
     #[test]
     fn test_tmp() {
