@@ -40,9 +40,9 @@ mod util {
                 flags,
             ),
         );
-        let oflags = OFlag::from_bits_truncate(flags as i32);
-        debug!("helper_parse_oflag() read file flags: {:?}", oflags);
-        oflags
+        let o_flags = OFlag::from_bits_truncate(flags as i32);
+        debug!("helper_parse_oflag() read file flags: {:?}", o_flags);
+        o_flags
     }
 
     pub fn parse_mode(mode: u32) -> Mode {
@@ -55,11 +55,11 @@ mod util {
         );
 
         #[cfg(target_os = "linux")]
-        let fmode = Mode::from_bits_truncate(mode);
+        let f_mode = Mode::from_bits_truncate(mode);
         #[cfg(target_os = "macos")]
-        let fmode = Mode::from_bits_truncate(mode as u16);
-        debug!("helper_parse_mode() read file mode: {:?}", fmode);
-        fmode
+        let f_mode = Mode::from_bits_truncate(mode as u16);
+        debug!("helper_parse_mode() read file mode: {:?}", f_mode);
+        f_mode
     }
     pub fn parse_mode_bits(mode: u32) -> u16 {
         #[cfg(target_os = "linux")]
@@ -120,8 +120,6 @@ mod util {
     }
 
     pub fn read_attr(fd: RawFd) -> Result<FileAttr, nix::Error> {
-        let st = stat::fstat(fd)?;
-
         #[cfg(target_os = "macos")]
         fn build_crtime(st: &FileStat) -> Option<SystemTime> {
             UNIX_EPOCH.checked_add(Duration::new(
@@ -134,13 +132,15 @@ mod util {
             None
         }
 
-        let atime =
+        let st = stat::fstat(fd)?;
+
+        let a_time =
             UNIX_EPOCH.checked_add(Duration::new(st.st_atime as u64, st.st_atime_nsec as u32));
-        let mtime =
+        let m_time =
             UNIX_EPOCH.checked_add(Duration::new(st.st_mtime as u64, st.st_mtime_nsec as u32));
-        let ctime =
+        let c_time =
             UNIX_EPOCH.checked_add(Duration::new(st.st_ctime as u64, st.st_ctime_nsec as u32));
-        let crtime = build_crtime(&st);
+        let create_time = build_crtime(&st);
 
         let perm = parse_mode_bits(st.st_mode as u32);
         debug!("read_attr() got file permission as: {}", perm);
@@ -152,10 +152,10 @@ mod util {
             ino: st.st_ino,
             size: st.st_size as u64,
             blocks: st.st_blocks as u64,
-            atime: atime.unwrap_or(nt),
-            mtime: mtime.unwrap_or(nt),
-            ctime: ctime.unwrap_or(nt),
-            crtime: crtime.unwrap_or(nt),
+            atime: a_time.unwrap_or(nt),
+            mtime: m_time.unwrap_or(nt),
+            ctime: c_time.unwrap_or(nt),
+            crtime: create_time.unwrap_or(nt),
             kind,
             perm,
             nlink: st.st_nlink as u32,
@@ -838,7 +838,7 @@ impl INode {
             }
             cmp::Ordering::Less => {
                 let zero_padding_size = (offset as usize) - file_data.len();
-                let mut zero_padding_vec = vec![0u8; zero_padding_size];
+                let mut zero_padding_vec = vec![0_u8; zero_padding_size];
                 file_data.append(&mut zero_padding_vec);
             }
             cmp::Ordering::Equal => (),
@@ -927,25 +927,25 @@ impl MemoryFilesystem {
             return;
         }
         // all checks are passed, ready to create new node
-        let mflags = util::parse_mode(mode);
+        let m_flags = util::parse_mode(mode);
         let new_ino: u64;
         let new_inode: INode;
         match node_kind {
             FileType::Directory => {
                 debug!(
                     "helper_create_node() about to create a directory with name={:?}, mode={:?}",
-                    node_name, mflags,
+                    node_name, m_flags,
                 );
-                new_inode = parent_inode.create_child_dir(node_name, mflags);
+                new_inode = parent_inode.create_child_dir(node_name, m_flags);
             }
             FileType::RegularFile => {
-                let oflags = OFlag::O_CREAT | OFlag::O_EXCL | OFlag::O_RDWR;
+                let o_flags = OFlag::O_CREAT | OFlag::O_EXCL | OFlag::O_RDWR;
                 debug!(
                     "helper_create_node() about to
                         create a file with name={:?}, oflags={:?}, mode={:?}",
-                    node_name, oflags, mflags,
+                    node_name, o_flags, m_flags,
                 );
-                new_inode = parent_inode.create_child_file(node_name, oflags, mflags);
+                new_inode = parent_inode.create_child_file(node_name, o_flags, m_flags);
             }
             _ => panic!(
                 "helper_create_node() found unsupported file type: {:?}",
@@ -1169,8 +1169,8 @@ impl Filesystem for MemoryFilesystem {
                 ino
             )
         });
-        let oflags = util::parse_oflag(flags);
-        let new_fd = inode.dup_fd(oflags);
+        let o_flags = util::parse_oflag(flags);
+        let new_fd = inode.dup_fd(o_flags);
         reply.opened(new_fd as u64, flags);
         debug!(
             "open() successfully duplicated the file handler of ino={}, fd={}, flags: {:?}",
@@ -1229,13 +1229,13 @@ impl Filesystem for MemoryFilesystem {
                 ino
             )
         });
-        let oflags = util::parse_oflag(flags);
-        let new_fd = inode.dup_fd(oflags);
+        let o_flags = util::parse_oflag(flags);
+        let new_fd = inode.dup_fd(o_flags);
 
         reply.opened(new_fd as u64, flags);
         debug!(
             "opendir() successfully duplicated the file handler of ino={}, new fd={}, flags: {:?}",
-            ino, new_fd, oflags,
+            ino, new_fd, o_flags,
         );
     }
 
@@ -1500,11 +1500,11 @@ impl Filesystem for MemoryFilesystem {
         req: &Request<'_>,
         ino: u64,
         mode: Option<u32>,
-        uid: Option<u32>,
-        gid: Option<u32>,
+        user_id: Option<u32>,
+        group_id: Option<u32>,
         size: Option<u64>,
-        atime: Option<SystemTime>,
-        mtime: Option<SystemTime>,
+        a_time: Option<SystemTime>,
+        m_time: Option<SystemTime>,
         fh: Option<u64>,
         crtime: Option<SystemTime>,
         chgtime: Option<SystemTime>,
@@ -1518,11 +1518,11 @@ impl Filesystem for MemoryFilesystem {
                 bkuptime={:?}, flags={:?}, req={:?})",
             ino,
             mode,
-            uid,
-            gid,
+            user_id,
+            group_id,
             size,
-            atime,
-            mtime,
+            a_time,
+            m_time,
             fh,
             crtime,
             chgtime,
@@ -1544,20 +1544,20 @@ impl Filesystem for MemoryFilesystem {
                 debug_assert_eq!(kind, attr.kind);
             }
             // no replace
-            attr.uid = uid.unwrap_or(attr.uid);
-            attr.gid = gid.unwrap_or(attr.gid);
+            attr.uid = user_id.unwrap_or(attr.uid);
+            attr.gid = group_id.unwrap_or(attr.gid);
             attr.size = size.unwrap_or(attr.size);
-            attr.atime = atime.unwrap_or(attr.atime);
-            attr.mtime = mtime.unwrap_or(attr.mtime);
+            attr.atime = a_time.unwrap_or(attr.atime);
+            attr.mtime = m_time.unwrap_or(attr.mtime);
             attr.crtime = crtime.unwrap_or(attr.crtime);
             attr.flags = flags.unwrap_or(attr.flags);
 
             if mode.is_some()
-                || uid.is_some()
-                || gid.is_some()
+                || user_id.is_some()
+                || group_id.is_some()
                 || size.is_some()
-                || atime.is_some()
-                || mtime.is_some()
+                || a_time.is_some()
+                || m_time.is_some()
                 || crtime.is_some()
                 || chgtime.is_some()
                 || bkuptime.is_some()
@@ -1668,8 +1668,8 @@ impl Filesystem for MemoryFilesystem {
                 ino
             )
         });
-        let oflags = util::parse_oflag(flags);
-        let written_size = inode.write_file(fh, offset, data, oflags);
+        let o_flags = util::parse_oflag(flags);
+        let written_size = inode.write_file(fh, offset, data, o_flags);
         reply.written(written_size as u32);
         debug!(
             "write() successfully wrote {} byte data to file ino={} at offset={},
@@ -1705,10 +1705,10 @@ impl Filesystem for MemoryFilesystem {
         newname: &OsStr,
         reply: ReplyEmpty,
     ) {
-        let (old_name, new_name) = (OsString::from(name), OsString::from(newname));
+        let (old_name, os_newname) = (OsString::from(name), OsString::from(newname));
         debug!(
             "rename(old parent={}, old name={:?}, new parent={}, new name={:?}, req={:?})",
-            parent, old_name, new_parent, new_name, req.request,
+            parent, old_name, new_parent, os_newname, req.request,
         );
 
         // let old_entry_ino: u64;
@@ -1744,18 +1744,18 @@ impl Filesystem for MemoryFilesystem {
             }
 
             let new_parent_inode = self.cache.get(&new_parent).unwrap_or_else(|| panic!("rename() found fs is inconsistent, new parent i-node of ino={} should be in cache", new_parent));
-            if let Some(replace_entry) = new_parent_inode.get_entry(&new_name) {
-                debug_assert_eq!(&new_name, &replace_entry.name);
+            if let Some(replace_entry) = new_parent_inode.get_entry(&os_newname) {
+                debug_assert_eq!(&os_newname, &replace_entry.name);
                 // replaced_node_ino = replace_entry.ino;
                 // need_to_replace = true;
                 // debug!(
                 //     "rename() found the new parent directory of ino={} already has a child with name={:?}",
-                //     new_parent, new_name,
+                //     new_parent, os_newname,
                 // );
                 reply.error(EEXIST); // RENAME_NOREPLACE
                 debug!(
                     "rename() found the new parent directory of ino={} already has a child with name={:?}",
-                    new_parent, new_name,
+                    new_parent, os_newname,
                 );
                 return;
             }
@@ -1770,17 +1770,17 @@ impl Filesystem for MemoryFilesystem {
             let old_entry = parent_inode.get_entry(&old_name).unwrap();
             let child_inode = self.cache.get(&old_entry.ino).unwrap();
             child_inode.set_parent_ino(new_parent_inode.get_ino());
-            child_inode.set_name(new_name.clone());
+            child_inode.set_name(os_newname.clone());
 
             let mut child_entry = parent_inode.remove_entry(&old_name);
-            child_entry.name = new_name;
+            child_entry.name = os_newname;
             let replaced_result = new_parent_inode.insert_entry(child_entry);
             debug_assert!(replaced_result.is_none());
             // if need_to_replace {
             //     debug_assert!(replaced_result.is_some());
             //     let replaced_entry = replaced_result.unwrap();
             //     debug_assert_eq!(replaced_entry.ino, replaced_node_ino);
-            //     debug_assert_eq!(new_name, replaced_entry.name);
+            //     debug_assert_eq!(os_newname, replaced_entry.name);
             // } else {
             // move child on disk
             INode::helper_move_file(&parent_inode, &old_name, &new_parent_inode, newname).unwrap_or_else(|_| panic!("rename() failed to move the old file name={:?} of ino={} under old parent ino={}
