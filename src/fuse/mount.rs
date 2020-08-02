@@ -516,7 +516,9 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
 pub fn umount(mount_point: &Path) -> i32 {
     let mntpnt = mount_point.as_os_str();
     #[allow(unsafe_code)]
-    unsafe { libc::unmount(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE) }
+    unsafe {
+        libc::unmount(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE)
+    }
 }
 
 #[cfg(any(target_os = "macos"))]
