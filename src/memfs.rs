@@ -1,6 +1,6 @@
 use crate::fuse::{
-    FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry,
-    ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
+    Cast, FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty,
+    ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
 use log::{debug, error}; // info, warn
@@ -34,20 +34,20 @@ mod util {
 
     pub fn parse_oflag(flags: u32) -> OFlag {
         debug_assert!(
-            flags < std::i32::MAX as u32,
+            flags < std::i32::MAX.cast(),
             format!(
                 "helper_parse_oflag() found flags={} overflow, larger than u16::MAX",
                 flags,
             ),
         );
-        let o_flags = OFlag::from_bits_truncate(flags as i32);
+        let o_flags = OFlag::from_bits_truncate(flags.cast());
         debug!("helper_parse_oflag() read file flags: {:?}", o_flags);
         o_flags
     }
 
     pub fn parse_mode(mode: u32) -> Mode {
         debug_assert!(
-            mode < std::u16::MAX as u32,
+            mode < std::u16::MAX.cast(),
             format!(
                 "helper_parse_mode() found mode={} overflow, larger than u16::MAX",
                 mode,
@@ -57,7 +57,7 @@ mod util {
         #[cfg(target_os = "linux")]
         let f_mode = Mode::from_bits_truncate(mode);
         #[cfg(target_os = "macos")]
-        let f_mode = Mode::from_bits_truncate(mode as u16);
+        let f_mode = Mode::from_bits_truncate(mode.cast());
         debug!("helper_parse_mode() read file mode: {:?}", f_mode);
         f_mode
     }
@@ -72,7 +72,7 @@ mod util {
 
     pub fn parse_sflag(flags: u32) -> SFlag {
         debug_assert!(
-            flags < std::u16::MAX as u32,
+            flags < std::u16::MAX.cast(),
             format!(
                 "parse_sflag() found flags={} overflow, larger than u16::MAX",
                 flags,
@@ -82,7 +82,7 @@ mod util {
         #[cfg(target_os = "linux")]
         let sflag = SFlag::from_bits_truncate(flags);
         #[cfg(target_os = "macos")]
-        let sflag = SFlag::from_bits_truncate(flags as u16);
+        let sflag = SFlag::from_bits_truncate(flags.cast());
         debug!("convert_sflag() read file type as: {:?}", sflag);
         sflag
     }
@@ -123,8 +123,8 @@ mod util {
         #[cfg(target_os = "macos")]
         fn build_crtime(st: &FileStat) -> Option<SystemTime> {
             UNIX_EPOCH.checked_add(Duration::new(
-                st.st_birthtime as u64,
-                st.st_birthtime_nsec as u32,
+                st.st_birthtime.cast(),
+                st.st_birthtime_nsec.cast(),
             ))
         }
         #[cfg(target_os = "linux")]
@@ -135,33 +135,33 @@ mod util {
         let st = stat::fstat(fd)?;
 
         let a_time =
-            UNIX_EPOCH.checked_add(Duration::new(st.st_atime as u64, st.st_atime_nsec as u32));
+            UNIX_EPOCH.checked_add(Duration::new(st.st_atime.cast(), st.st_atime_nsec.cast()));
         let m_time =
-            UNIX_EPOCH.checked_add(Duration::new(st.st_mtime as u64, st.st_mtime_nsec as u32));
+            UNIX_EPOCH.checked_add(Duration::new(st.st_mtime.cast(), st.st_mtime_nsec.cast()));
         let c_time =
-            UNIX_EPOCH.checked_add(Duration::new(st.st_ctime as u64, st.st_ctime_nsec as u32));
+            UNIX_EPOCH.checked_add(Duration::new(st.st_ctime.cast(), st.st_ctime_nsec.cast()));
         let create_time = build_crtime(&st);
 
-        let perm = parse_mode_bits(st.st_mode as u32);
+        let perm = parse_mode_bits(st.st_mode.cast());
         debug!("read_attr() got file permission as: {}", perm);
-        let sflag = parse_sflag(st.st_mode as u32);
+        let sflag = parse_sflag(st.st_mode.cast());
         let kind = convert_sflag(sflag);
 
         let nt = SystemTime::now();
         let attr = FileAttr {
             ino: st.st_ino,
-            size: st.st_size as u64,
-            blocks: st.st_blocks as u64,
+            size: st.st_size.cast(),
+            blocks: st.st_blocks.cast(),
             atime: a_time.unwrap_or(nt),
             mtime: m_time.unwrap_or(nt),
             ctime: c_time.unwrap_or(nt),
             crtime: create_time.unwrap_or(nt),
             kind,
             perm,
-            nlink: st.st_nlink as u32,
+            nlink: st.st_nlink.cast(),
             uid: st.st_uid,
             gid: st.st_gid,
-            rdev: st.st_rdev as u32,
+            rdev: st.st_rdev.cast(),
             #[cfg(target_os = "linux")]
             flags: 0,
             #[cfg(target_os = "macos")]
@@ -343,14 +343,14 @@ impl INode {
     }
 
     fn dec_lookup_count_by(&self, nlookup: u64) -> i64 {
-        debug_assert!(nlookup < std::i64::MAX as u64);
+        debug_assert!(nlookup < std::i64::MAX.cast());
         match self {
             INode::DIR(dir_node) => dir_node
                 .lookup_count
-                .fetch_sub(nlookup as i64, atomic::Ordering::SeqCst),
+                .fetch_sub(nlookup.cast(), atomic::Ordering::SeqCst),
             INode::FILE(file_node) => file_node
                 .lookup_count
-                .fetch_sub(nlookup as i64, atomic::Ordering::SeqCst),
+                .fetch_sub(nlookup.cast(), atomic::Ordering::SeqCst),
         }
     }
 
@@ -533,7 +533,7 @@ impl INode {
         let fd = file_node.fd;
         let file_size = file_node.attr.get().size;
         let file_data: &mut Vec<u8> = &mut file_node.data.borrow_mut();
-        file_data.reserve(file_size as usize);
+        file_data.reserve(file_size.cast());
         #[allow(unsafe_code)]
         unsafe {
             file_data.set_len(file_data.capacity());
@@ -552,7 +552,7 @@ impl INode {
                 );
             }
         }
-        debug_assert_eq!(file_data.len(), file_size as usize);
+        debug_assert_eq!(file_data.len(), file_size.cast());
         debug!(
             "helper_load_file_data() successfully load {} byte data",
             file_size,
@@ -808,7 +808,7 @@ impl INode {
         let ino = attr.ino;
         let file_data = file_node.data.get_mut();
 
-        let size_after_write = offset as usize + data.len();
+        let size_after_write = offset.cast::<usize>() + data.len();
         if file_data.capacity() < size_after_write {
             let before_cap = file_data.capacity();
             let extra_space_size = size_after_write - file_data.capacity();
@@ -828,16 +828,16 @@ impl INode {
                 file_data.capacity(),
             );
         }
-        match file_data.len().cmp(&(offset as usize)) {
+        match file_data.len().cmp(&(offset.cast())) {
             cmp::Ordering::Greater => {
-                file_data.truncate(offset as usize);
+                file_data.truncate(offset.cast());
                 debug!(
                     "write() truncated the file of ino={} to size={}",
                     ino, offset
                 );
             }
             cmp::Ordering::Less => {
-                let zero_padding_size = (offset as usize) - file_data.len();
+                let zero_padding_size = offset.cast::<usize>() - file_data.len();
                 let mut zero_padding_vec = vec![0_u8; zero_padding_size];
                 file_data.append(&mut zero_padding_vec);
             }
@@ -846,7 +846,7 @@ impl INode {
         file_data.extend_from_slice(data);
 
         let fcntl_oflags = FcntlArg::F_SETFL(oflags);
-        let fd = fh as RawFd;
+        let fd = fh.cast();
         fcntl::fcntl(fd, fcntl_oflags).unwrap_or_else(|_| {
             panic!(
                 "write_file() failed to set the flags {:?} to file handler {} of ino={}",
@@ -860,7 +860,7 @@ impl INode {
             debug_assert_eq!(data.len(), written_size);
         }
         // update the attribute of the written file
-        attr.size = file_data.len() as u64;
+        attr.size = file_data.len().cast();
         let ts = SystemTime::now();
         attr.mtime = ts;
 
@@ -1171,7 +1171,7 @@ impl Filesystem for MemoryFilesystem {
         });
         let o_flags = util::parse_oflag(flags);
         let new_fd = inode.dup_fd(o_flags);
-        reply.opened(new_fd as u64, flags);
+        reply.opened(new_fd.cast(), flags);
         debug!(
             "open() successfully duplicated the file handler of ino={}, fd={}, flags: {:?}",
             ino, new_fd, flags,
@@ -1203,7 +1203,7 @@ impl Filesystem for MemoryFilesystem {
         }
 
         // close the duplicated dir fd
-        unistd::close(fh as RawFd).unwrap_or_else(|_| {
+        unistd::close(fh.cast()).unwrap_or_else(|_| {
             panic!(
                 "release() failed to close the file handler {} of ino={}",
                 fh, ino
@@ -1232,7 +1232,7 @@ impl Filesystem for MemoryFilesystem {
         let o_flags = util::parse_oflag(flags);
         let new_fd = inode.dup_fd(o_flags);
 
-        reply.opened(new_fd as u64, flags);
+        reply.opened(new_fd.cast(), flags);
         debug!(
             "opendir() successfully duplicated the file handler of ino={}, new fd={}, flags: {:?}",
             ino, new_fd, o_flags,
@@ -1251,7 +1251,7 @@ impl Filesystem for MemoryFilesystem {
             )
         });
         // close the duplicated dir fd
-        unistd::close(fh as RawFd).unwrap_or_else(|_| {
+        unistd::close(fh.cast()).unwrap_or_else(|_| {
             panic!(
                 "releasedir() failed to close the file handler {} of ino={}",
                 fh, ino
@@ -1274,17 +1274,18 @@ impl Filesystem for MemoryFilesystem {
         size: u32,
         reply: ReplyData,
     ) {
+        assert!(offset >= 0);
         debug!(
             "read(ino={}, fh={}, offset={}, size={}, req={:?})",
             ino, fh, offset, size, req.request,
         );
 
         let read_helper = |content: &Vec<u8>| {
-            if (offset as usize) < content.len() {
-                let read_data = if ((offset + size as i64) as usize) < content.len() {
-                    &content[(offset as usize)..(offset + size as i64) as usize]
+            if offset.cast::<usize>() < content.len() {
+                let read_data = if (offset.cast::<usize>() + size.cast::<usize>()) < content.len() {
+                    &content[offset.cast()..(offset.cast::<usize>() + size.cast::<usize>())]
                 } else {
-                    &content[(offset as usize)..]
+                    &content[offset.cast()..]
                 };
                 debug!(
                     "read() successfully from the file of ino={}, the read size is: {:?}",
@@ -1325,11 +1326,11 @@ impl Filesystem for MemoryFilesystem {
 
         let readdir_helper = |data: &BTreeMap<OsString, DirEntry>| {
             let mut num_child_entries = 0;
-            for (i, (child_name, child_entry)) in data.iter().enumerate().skip(offset as usize) {
+            for (i, (child_name, child_entry)) in data.iter().enumerate().skip(offset.cast()) {
                 let child_ino = child_entry.ino;
                 reply.add(
                     child_ino,
-                    offset + i as i64 + 1, // i + 1 means the index of the next entry
+                    offset + i.cast::<i64>() + 1, // i + 1 means the index of the next entry
                     util::convert_node_type(&child_entry.entry_type),
                     child_name,
                 );
@@ -1339,7 +1340,7 @@ impl Filesystem for MemoryFilesystem {
                         under the directory of ino={}",
                     child_name,
                     child_ino,
-                    offset + i as i64 + 1,
+                    offset + i.cast::<i64>() + 1,
                     child_entry,
                     ino,
                 );
@@ -1463,7 +1464,7 @@ impl Filesystem for MemoryFilesystem {
             let previous_count = inode.dec_lookup_count_by(nlookup);
             current_count = inode.get_lookup_count();
             debug_assert!(current_count >= 0);
-            debug_assert_eq!(previous_count - current_count, nlookup as i64); // assert thread-safe
+            debug_assert_eq!(previous_count - current_count, nlookup.cast()); // assert thread-safe
             debug!(
                 "forget() successfully reduced lookup count of ino={} from {} to {}",
                 ino, previous_count, current_count,
@@ -1670,7 +1671,7 @@ impl Filesystem for MemoryFilesystem {
         });
         let o_flags = util::parse_oflag(flags);
         let written_size = inode.write_file(fh, offset, data, o_flags);
-        reply.written(written_size as u32);
+        reply.written(written_size.cast());
         debug!(
             "write() successfully wrote {} byte data to file ino={} at offset={},
                 the first at most 100 byte data are: {:?}",
