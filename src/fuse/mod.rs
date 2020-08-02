@@ -32,11 +32,13 @@ pub use mount::options_validator;
 mod abi;
 mod argument;
 mod channel;
+mod conversion;
 mod ll_request;
 mod mount;
 mod reply;
 mod request;
 mod session;
+pub(crate) use conversion::Cast;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
