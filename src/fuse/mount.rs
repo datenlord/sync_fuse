@@ -8,6 +8,7 @@ use std::fs;
 use std::os::raw::c_void;
 use std::os::unix::io::RawFd;
 use std::path::Path;
+use std::convert::TryFrom;
 
 use param::*;
 
@@ -576,7 +577,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
 
     args.set_mntpath(mntpath_slice);
     args.set_random(drandom);
-    args.set_rdev(sb.st_rdev as u32);
+    args.set_rdev(u32::try_from(sb.st_rdev).unwrap());
 
     // Default mount flags.
     let mut flag = MNT_NOSUID | MNT_NODEV | MNT_NOUSERXATTR | MNT_NOATIME;

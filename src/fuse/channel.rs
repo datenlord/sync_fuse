@@ -11,6 +11,7 @@ use std::io;
 use std::os::raw::{c_char, c_int};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::convert::TryFrom;
 
 use super::mount;
 use super::reply::ReplySender;
@@ -30,7 +31,7 @@ fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T 
     args.extend(options.iter().map(|s| CString::new(s.as_bytes()).unwrap()));
     let argptrs: Vec<_> = args.iter().map(|s| s.as_ptr()).collect();
     f(&fuse_args {
-        argc: argptrs.len() as i32,
+        argc: i32::try_from(argptrs.len()).unwrap(),
         argv: argptrs.as_ptr(),
         allocated: 0,
     })

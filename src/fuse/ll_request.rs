@@ -375,8 +375,8 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
         let opcode = fuse_opcode::try_from(header.opcode)
             .map_err(|_: InvalidOpcodeError| RequestError::UnknownOperation(header.opcode))?;
         // Check data size
-        if data_len < header.len as usize {
-            return Err(RequestError::ShortRead(data_len, header.len as usize));
+        if data_len < usize::try_from(header.len).unwrap(){
+            return Err(RequestError::ShortRead(data_len, usize::try_from(header.len).unwrap()));
         }
         // Parse/check operation arguments
         let operation =
@@ -611,39 +611,6 @@ mod tests {
                    220, 0,
                ],*/
         ];
-        for sr in reqs {
-            let req = Request::try_from(&sr[..]).unwrap();
-            debug_attr(&req);
-        }
-
-        // assert_eq!(req.header.len, 168);
-        // assert_eq!(req.header.opcode, 4);
-        // assert_eq!(req.unique(), 7);
-        // assert_eq!(req.nodeid(), 8);
-        // assert_eq!(req.uid(), 502);
-        // assert_eq!(req.gid(), 20);
-        // match req.operation() {
-        //     Operation::SetAttr{ arg } => {
-        //         assert_eq!(arg.valid, 65);
-        //         assert_eq!(arg.fh, 0);
-        //         assert_eq!(arg.size, 1);
-        //         // assert_eq!(arg.lock_owner, 0);
-        //         assert_eq!(arg.atime, 343597383680);
-        //         assert_eq!(arg.mtime, 33188);
-        //         assert_eq!(arg.atimensec, 1638916);
-        //         assert_eq!(arg.mtimensec, 2629640);
-        //         assert_eq!(arg.mode, 33152);
-        //         assert_eq!(arg.bkuptime, 863397219);
-        //         assert_eq!(arg.chgtime, 44071690216407040);
-        //         assert_eq!(arg.crtime, 45053588459749376);
-        //         assert_eq!(arg.bkuptimensec, 0);
-        //         assert_eq!(arg.chgtimensec, 0);
-        //         assert_eq!(arg.crtimensec, 0);
-        //         assert_eq!(arg.flags, 14471928);
-        //     }
-        //     _ => panic!("Unexpected request operation"),
-        // }
-
         fn debug_attr(req: &Request<'_>) {
             dbg!(req.header.len);
             dbg!(req.header.opcode);
@@ -681,6 +648,38 @@ mod tests {
                 _ => panic!("Unexpected request operation"),
             }
         }
+        for sr in reqs {
+            let req = Request::try_from(&sr[..]).unwrap();
+            debug_attr(&req);
+        }
+
+        // assert_eq!(req.header.len, 168);
+        // assert_eq!(req.header.opcode, 4);
+        // assert_eq!(req.unique(), 7);
+        // assert_eq!(req.nodeid(), 8);
+        // assert_eq!(req.uid(), 502);
+        // assert_eq!(req.gid(), 20);
+        // match req.operation() {
+        //     Operation::SetAttr{ arg } => {
+        //         assert_eq!(arg.valid, 65);
+        //         assert_eq!(arg.fh, 0);
+        //         assert_eq!(arg.size, 1);
+        //         // assert_eq!(arg.lock_owner, 0);
+        //         assert_eq!(arg.atime, 343597383680);
+        //         assert_eq!(arg.mtime, 33188);
+        //         assert_eq!(arg.atimensec, 1638916);
+        //         assert_eq!(arg.mtimensec, 2629640);
+        //         assert_eq!(arg.mode, 33152);
+        //         assert_eq!(arg.bkuptime, 863397219);
+        //         assert_eq!(arg.chgtime, 44071690216407040);
+        //         assert_eq!(arg.crtime, 45053588459749376);
+        //         assert_eq!(arg.bkuptimensec, 0);
+        //         assert_eq!(arg.chgtimensec, 0);
+        //         assert_eq!(arg.crtimensec, 0);
+        //         assert_eq!(arg.flags, 14471928);
+        //     }
+        //     _ => panic!("Unexpected request operation"),
+        // }
     }
 
     #[test]
