@@ -13,7 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::abi::consts::*;
 use super::abi::*;
-use super::channel::ChannelSender;
+use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
@@ -34,7 +34,7 @@ const INIT_FLAGS: u32 = FUSE_ASYNC_READ | FUSE_CASE_INSENSITIVE | FUSE_VOL_RENAM
 #[derive(Debug)]
 pub struct Request<'a> {
     /// Channel sender for sending the reply
-    ch: ChannelSender,
+    ch: FuseChannelSender,
     /// Request raw data
     data: &'a [u8],
     /// Parsed request
@@ -43,7 +43,7 @@ pub struct Request<'a> {
 
 impl<'a> Request<'a> {
     /// Create a new request from the given data
-    pub fn new(ch: ChannelSender, data: &'a [u8]) -> Option<Request<'a>> {
+    pub fn new(ch: FuseChannelSender, data: &'a [u8]) -> Option<Request<'a>> {
         let request = match ll_request::Request::try_from(data) {
             Ok(request) => request,
             Err(err) => {

@@ -84,12 +84,14 @@ impl Channel {
         //     }
         //     Ok(())
         // }
+        #[allow(unsafe_code)]
         unsafe {
             buffer.set_len(buffer.capacity());
         }
         let res = unistd::read(self.fd, &mut *buffer);
         match res {
             Ok(s) => {
+                #[allow(unsafe_code)]
                 unsafe {
                     buffer.set_len(s);
                 }
@@ -106,12 +108,12 @@ impl Channel {
     /// Returns a sender object for this channel. The sender object can be
     /// used to send to the channel. Multiple sender objects can be used
     /// and they can safely be sent to other threads.
-    pub fn sender(&self) -> ChannelSender {
+    pub fn sender(&self) -> FuseChannelSender {
         // Since write/writev syscalls are threadsafe, we can simply create
         // a sender by using the same fd and use it in other threads. Only
         // the channel closes the fd when dropped. If any sender is used after
         // dropping the channel, it'll return an EBADF error.
-        ChannelSender { fd: self.fd }
+        FuseChannelSender { fd: self.fd }
     }
 }
 
@@ -128,11 +130,11 @@ impl Drop for Channel {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ChannelSender {
+pub struct FuseChannelSender {
     fd: c_int,
 }
 
-impl ChannelSender {
+impl FuseChannelSender {
     /// Send all data in the slice of slice of bytes in a single write (can block).
     pub fn send(&self, buffer: &[&[u8]]) -> io::Result<()> {
         let iovecs: Vec<_> = buffer.iter().map(|d| IoVec::from_slice(d)).collect();
@@ -150,9 +152,9 @@ impl ChannelSender {
     }
 }
 
-impl ReplySender for ChannelSender {
+impl ReplySender for FuseChannelSender {
     fn send(&self, data: &[&[u8]]) {
-        if let Err(err) = ChannelSender::send(self, data) {
+        if let Err(err) = FuseChannelSender::send(self, data) {
             error!("Failed to send FUSE reply: {}", err);
         }
     }

@@ -278,11 +278,11 @@ mod param {
             let fstypename = CString::new("").expect("CString::new failed");
             let volname = CString::new("OSXFUSE Volume 0 (macfuse)").expect("CString::new failed");
 
-            let mut fsname_slice = [0u8; MAXPATHLEN];
+            let mut fsname_slice = [0_u8; MAXPATHLEN];
             copy_slice(fsname.as_bytes(), &mut fsname_slice);
-            let mut fstypename_slice = [0u8; MFSTYPENAMELEN];
+            let mut fstypename_slice = [0_u8; MFSTYPENAMELEN];
             copy_slice(fstypename.as_bytes(), &mut fstypename_slice);
-            let mut volname_slice = [0u8; MAXPATHLEN];
+            let mut volname_slice = [0_u8; MAXPATHLEN];
             copy_slice(volname.as_bytes(), &mut volname_slice);
 
             let mut args = FuseMountArgs {
@@ -515,6 +515,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
 #[cfg(any(target_os = "macos"))]
 pub fn umount(mount_point: &Path) -> i32 {
     let mntpnt = mount_point.as_os_str();
+    #[allow(unsafe_code)]
     unsafe { libc::unmount(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE) }
 }
 
@@ -551,11 +552,13 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     let mut drandom: u32 = 0;
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
     use nix::ioctl_read;
+    #[allow(unsafe_code)]
     let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
         let ioctl_fail_str = "ioctl read random secret failed!";
+        #[allow(unsafe_code)]
         unsafe {
             libc::perror(ioctl_fail_str.as_ptr() as *const i8);
         }
@@ -571,7 +574,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     let mntpath = CString::new(cstr_path).expect("CString::new failed");
     let fstype = CString::new("osxfuse").expect("CString::new failed");
 
-    let mut mntpath_slice = [0u8; MAXPATHLEN];
+    let mut mntpath_slice = [0_u8; MAXPATHLEN];
     copy_slice(mntpath.as_bytes(), &mut mntpath_slice);
 
     args.set_mntpath(mntpath_slice);
@@ -583,6 +586,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     let parsed_flag = parse_mount_flag(options);
     flag |= parsed_flag;
 
+    #[allow(unsafe_code)]
     unsafe {
         let result = libc::mount(
             fstype.as_ptr(),
