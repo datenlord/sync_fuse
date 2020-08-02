@@ -6,12 +6,12 @@
 use log::{debug, error};
 use nix::sys::uio::{self, IoVec};
 use nix::unistd;
+use std::convert::TryFrom;
 use std::ffi::{CString, OsStr};
 use std::io;
 use std::os::raw::{c_char, c_int};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
-use std::convert::TryFrom;
 
 use super::mount;
 use super::reply::ReplySender;

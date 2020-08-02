@@ -375,8 +375,11 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
         let opcode = fuse_opcode::try_from(header.opcode)
             .map_err(|_: InvalidOpcodeError| RequestError::UnknownOperation(header.opcode))?;
         // Check data size
-        if data_len < usize::try_from(header.len).unwrap(){
-            return Err(RequestError::ShortRead(data_len, usize::try_from(header.len).unwrap()));
+        if data_len < usize::try_from(header.len).unwrap() {
+            return Err(RequestError::ShortRead(
+                data_len,
+                usize::try_from(header.len).unwrap(),
+            ));
         }
         // Parse/check operation arguments
         let operation =

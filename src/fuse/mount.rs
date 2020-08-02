@@ -3,12 +3,12 @@ use nix::errno::{self, Errno};
 use nix::fcntl::{self, OFlag};
 use nix::sys::stat::{self, FileStat, Mode};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::ffi::CString;
 use std::fs;
 use std::os::raw::c_void;
 use std::os::unix::io::RawFd;
 use std::path::Path;
-use std::convert::TryFrom;
 
 use param::*;
 
