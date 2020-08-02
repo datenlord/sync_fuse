@@ -35,8 +35,7 @@ pub fn setup(mount_dir: &Path) -> JoinHandle<()> {
         //"-o",
         //"debug",
         "fsname=fuse_rs_demo",
-        "ro",
-        "allow_other",
+        //"allow_other",
     ]
     .iter()
     .map(|o| o.as_ref())
