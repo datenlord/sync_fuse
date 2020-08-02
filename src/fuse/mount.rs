@@ -80,7 +80,11 @@ mod param {
             }
         }
 
-        fn parse_allow_other(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
+        fn parse_allow_other(
+            args: &mut FuseMountArgs,
+            _mount_option: &FuseMountOption,
+            option: &str,
+        ) {
             args.allow_other = 1;
             args.kernel_opts = add_option(&args.kernel_opts, option);
         }
@@ -214,8 +218,13 @@ mod param {
     use super::FuseMountOption;
     use regex::Regex;
     pub fn get_mount_options() -> Vec<FuseMountOption> {
-        fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &FuseMountOption, _option: &str) {}
-        fn parse_fuse_flag(args: &mut FuseMountArgs, mount_option: &FuseMountOption, _option: &str) {
+        fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &FuseMountOption, _option: &str) {
+        }
+        fn parse_fuse_flag(
+            args: &mut FuseMountArgs,
+            mount_option: &FuseMountOption,
+            _option: &str,
+        ) {
             if let Some(flag) = mount_option.fuse_flag {
                 args.altflags |= flag;
             }
