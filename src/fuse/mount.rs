@@ -2,7 +2,6 @@ use log::{debug, error};
 use nix::errno::{self, Errno};
 use nix::fcntl::{self, OFlag};
 use nix::sys::stat::{self, FileStat, Mode};
-use regex::Regex;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
@@ -15,7 +14,7 @@ use param::*;
 pub struct MountOption {
     pub name: String,
     pub parser: fn(&mut FuseMountArgs, &MountOption, &str),
-    pub regex: Regex,
+    pub validator: fn(&MountOption, &str) -> bool,
     #[cfg(target_os = "linux")]
     pub flag: Option<u64>,
     #[cfg(target_os = "macos")]
@@ -37,7 +36,7 @@ pub fn options_validator(option: String) -> Result<(), String> {
         .split(',')
         .collect::<Vec<_>>()
         .iter()
-        .all(|&op| get_mount_options().iter().any(|x| x.regex.is_match(&op)));
+        .all(|&op| get_mount_options().iter().any(|x| (x.validator)(x, &op)));
     if ret {
         Ok(())
     } else {
@@ -91,34 +90,32 @@ mod param {
             args.fsname = Some(name);
             args.fusermount_opts = add_option(&args.fusermount_opts, option);
         }
-        // Safe to use unwrap here, because expression is literal string and always valid.
-        let ro_regex = Regex::new("^ro$").unwrap();
-        let rw_regex = Regex::new("^rw$").unwrap();
-        let allow_other_regex = Regex::new("^allow_other$").unwrap();
-        let fsname_regex = Regex::new(r"^fsname=[^\s]+$").unwrap();
+        fn name_match(mount_option: &MountOption, option: &str) -> bool {
+            option == mount_option.name
+        }
+        fn key_value_match(mount_option: &MountOption, option: &str) -> bool {
+            let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
+            let regex_str = format!(r"^{}=[^\s]+$", name);
+            let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
+            option_regex.is_match(option)
+        }
         vec![
             MountOption {
                 name: String::from("ro"),
                 parser: parse_flag,
-                regex: ro_regex,
+                validator: name_match,
                 flag: Some(MS_RDONLY),
-            },
-            MountOption {
-                name: String::from("rw"),
-                parser: parse_flag,
-                regex: rw_regex,
-                flag: None,
             },
             MountOption {
                 name: String::from("allow_other"),
                 parser: parse_allow_other,
-                regex: allow_other_regex,
+                validator: name_match,
                 flag: None,
             },
             MountOption {
                 name: String::from("fsname=<name>"),
                 parser: parse_fsname,
-                regex: fsname_regex,
+                validator: key_value_match,
                 flag: None,
             },
         ]
@@ -231,37 +228,35 @@ mod param {
                 &mut args.fsname,
             );
         }
-        // Safe to use unwrap here, because expression is literal string and always valid.
-        let ro_regex = Regex::new("^ro$").unwrap();
-        let rw_regex = Regex::new("^rw$").unwrap();
-        let allow_other_regex = Regex::new("^allow_other$").unwrap();
-        let fsname_regex = Regex::new(r"^fsname=[^\s]+$").unwrap();
+        fn name_match(mount_option: &MountOption, option: &str) -> bool {
+            option == mount_option.name
+        }
+        fn key_value_match(mount_option: &MountOption, option: &str) -> bool {
+            let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
+            let regex_str = format!(r"^{}=[^\s]+$", name);
+            let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
+            option_regex.is_match(option)
+        }
+
         vec![
             MountOption {
                 name: String::from("ro"),
                 parser: empty_parser,
-                regex: ro_regex,
+                validator: name_match,
                 flag: Some(MNT_RDONLY),
-                fuse_flag: None,
-            },
-            MountOption {
-                name: String::from("rw"),
-                parser: empty_parser,
-                regex: rw_regex,
-                flag: None,
                 fuse_flag: None,
             },
             MountOption {
                 name: String::from("allow_other"),
                 parser: parse_fuse_flag,
-                regex: allow_other_regex,
+                validator: name_match,
                 flag: None,
                 fuse_flag: Some(FUSE_MOPT_ALLOW_OTHER),
             },
             MountOption {
                 name: String::from("fsname=<name>"),
                 parser: parse_fsname,
-                regex: fsname_regex,
+                validator: key_value_match,
                 flag: None,
                 fuse_flag: None,
             },
@@ -308,7 +303,7 @@ mod param {
             let mount_options = get_mount_options();
             let option = mount_options
                 .iter()
-                .find(|x| x.regex.is_match(&op))
+                .find(|x| (x.validator)(x, &op))
                 .unwrap();
             if let Some(f) = option.flag {
                 flag |= f;
