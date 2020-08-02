@@ -74,9 +74,10 @@ mod param {
     }
 
     pub fn get_mount_options() -> Vec<FuseMountOption> {
-        fn parse_flag(args: &mut FuseMountArgs, mount_option: &FuseMountOption, _options: &str) {
+        fn parse_flag(args: &mut FuseMountArgs, mount_option: &FuseMountOption, option: &str) {
             if let Some(flag) = mount_option.flag {
                 args.flags |= flag;
+                args.fusermount_opts = add_option(&args.fusermount_opts, option);
             }
         }
 
@@ -164,6 +165,30 @@ mod param {
                 (option.parser)(&mut args, &option, &op)
             });
             args
+        }
+        pub fn get_kernel_opts(&self) -> Option<&String> {
+            self.kernel_opts.as_ref()
+        }
+        pub fn get_fusermount_opts(&self) -> Option<&String> {
+            self.fusermount_opts.as_ref()
+        }
+        pub fn get_mtab_opts(&self) -> Option<&String> {
+            self.mtab_opts.as_ref()
+        }
+        pub fn get_blkdev(&self) -> i32 {
+            self.blkdev
+        }
+        pub fn get_subtype(&self) -> Option<&String> {
+            self.subtype.as_ref()
+        }
+        pub fn get_subtype_opt(&self) -> Option<&String> {
+            self.subtype_opt.as_ref()
+        }
+        pub fn get_fsname(&self) -> Option<&String> {
+            self.fsname.as_ref()
+        }
+        pub fn get_flags(&self) -> u64 {
+            self.flags
         }
     }
 }
@@ -399,7 +424,7 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::sys::uio::IoVec;
     use std::process::Command;
 
-    let _args = FuseMountArgs::parse(options);
+    let args = FuseMountArgs::parse(options);
 
     let (local, remote) = socket::socketpair(
         AddressFamily::Unix,
@@ -409,9 +434,28 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     )
     .expect("failed to create socket pair");
 
+    // Default options
+    let mut opts = String::from("nosuid,nodev,noexec,nonempty");
+    if let Some(s) = args.get_fusermount_opts() {
+        opts.push(',');
+        opts.push_str(s);
+    };
+    if let Some(s) = args.get_kernel_opts() {
+        opts.push(',');
+        opts.push_str(s);
+    };
+    if let Some(s) = args.get_mtab_opts() {
+        opts.push(',');
+        opts.push_str(s);
+    }
+    if let Some(s) = args.get_subtype_opt() {
+        opts.push(',');
+        opts.push_str(s);
+    }
+
     let mount_handle = Command::new("fusermount")
         .arg("-o")
-        .arg("nosuid,nodev,noexec,nonempty") // rw,async,noatime,auto_unmount
+        .arg(&opts[..])
         .arg(mount_point.as_os_str())
         .env("_FUSE_COMMFD", remote.to_string())
         .output()
@@ -443,7 +487,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::sys::stat::SFlag;
     use nix::unistd;
 
-    let _args = FuseMountArgs::parse(options);
+    let args = FuseMountArgs::parse(options);
     let devpath = Path::new("/dev/fuse");
 
     let dev_fd: RawFd;
@@ -475,24 +519,45 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     }
 
     let mntpath = CString::new(cstr_path).expect("CString::new failed");
-    let fstype = CString::new("fuse").expect("CString::new failed");
-    let fsname = CString::new("/dev/fuse").expect("CString::new failed");
+    let fsname = if let Some(s) = args.get_fsname() {
+        CString::new(&s[..]).expect("CString::new failed")
+    } else if let Some(s) = args.get_subtype() {
+        CString::new(&s[..]).expect("CString::new failed")
+    } else {
+        CString::new("/dev/fuse").expect("CString::new failed")
+    };
 
-    let opts = format!(
+    let mut fstype = if args.get_blkdev() == 0 {
+        String::from("fuse")
+    } else {
+        String::from("fuseblk")
+    };
+    if let Some(s) = args.get_subtype() {
+        fstype.push('.');
+        fstype.push_str(s);
+    }
+    let fstype = CString::new(fstype).expect("CString::new failed");
+
+    let mut opts = format!(
         "fd={},rootmode={:o},user_id={},group_id={}",
         dev_fd,
         mnt_sb.st_mode & SFlag::S_IFMT.bits(),
         unistd::getuid().as_raw(),
         unistd::getgid().as_raw()
     );
+    let kernel_opts = args.get_kernel_opts();
+    if let Some(s) = kernel_opts {
+        opts = opts + "," + s;
+    }
     let opts = CString::new(&*opts).expect("CString::new failed");
+    let flag = MS_NOSUID | MS_NODEV | args.get_flags();
     debug!("direct mount opts: {:?}", &opts);
     unsafe {
         let result = libc::mount(
             fsname.as_ptr(),
             mntpath.as_ptr(),
             fstype.as_ptr(),
-            MS_NOSUID | MS_NODEV,
+            flag,
             opts.as_ptr() as *const c_void,
         );
         if result == 0 {
