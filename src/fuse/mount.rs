@@ -11,10 +11,10 @@ use std::path::Path;
 
 use param::*;
 
-pub struct MountOption {
+pub struct FuseMountOption {
     pub name: String,
-    pub parser: fn(&mut FuseMountArgs, &MountOption, &str),
-    pub validator: fn(&MountOption, &str) -> bool,
+    pub parser: fn(&mut FuseMountArgs, &FuseMountOption, &str),
+    pub validator: fn(&FuseMountOption, &str) -> bool,
     #[cfg(target_os = "linux")]
     pub flag: Option<u64>,
     #[cfg(target_os = "macos")]
@@ -48,7 +48,7 @@ pub fn options_validator(option: String) -> Result<(), String> {
     }
 }
 
-pub fn get_mount_options_map() -> HashMap<String, MountOption> {
+pub fn get_mount_options_map() -> HashMap<String, FuseMountOption> {
     get_mount_options()
         .into_iter()
         .map(|op| (op.name.split('=').collect::<Vec<_>>()[0].to_string(), op))
@@ -64,7 +64,7 @@ mod param {
     pub const MS_NODEV: u64 = 4; // Disallow access to device special files
     pub const MNT_FORCE: i32 = 1; // Force un-mount
 
-    use super::MountOption;
+    use super::FuseMountOption;
     use regex::Regex;
     fn add_option(options: &Option<String>, option: &str) -> Option<String> {
         match options {
@@ -73,46 +73,50 @@ mod param {
         }
     }
 
-    pub fn get_mount_options() -> Vec<MountOption> {
-        fn parse_flag(args: &mut FuseMountArgs, mount_option: &MountOption, _options: &str) {
+    pub fn get_mount_options() -> Vec<FuseMountOption> {
+        fn parse_flag(args: &mut FuseMountArgs, mount_option: &FuseMountOption, _options: &str) {
             if let Some(flag) = mount_option.flag {
                 args.flags |= flag;
             }
         }
 
-        fn parse_allow_other(args: &mut FuseMountArgs, _mount_option: &MountOption, option: &str) {
+        fn parse_allow_other(
+            args: &mut FuseMountArgs,
+            _mount_option: &FuseMountOption,
+            option: &str,
+        ) {
             args.allow_other = 1;
             args.kernel_opts = add_option(&args.kernel_opts, option);
         }
 
-        fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &MountOption, option: &str) {
+        fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
             let name = String::from(option.split('=').last().unwrap()); //Safe to use unwrap here, becuase option is always valid.
             args.fsname = Some(name);
             args.fusermount_opts = add_option(&args.fusermount_opts, option);
         }
-        fn name_match(mount_option: &MountOption, option: &str) -> bool {
+        fn name_match(mount_option: &FuseMountOption, option: &str) -> bool {
             option == mount_option.name
         }
-        fn key_value_match(mount_option: &MountOption, option: &str) -> bool {
+        fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
             let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
             let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
             option_regex.is_match(option)
         }
         vec![
-            MountOption {
+            FuseMountOption {
                 name: String::from("ro"),
                 parser: parse_flag,
                 validator: name_match,
                 flag: Some(MS_RDONLY),
             },
-            MountOption {
+            FuseMountOption {
                 name: String::from("allow_other"),
                 parser: parse_allow_other,
                 validator: name_match,
                 flag: None,
             },
-            MountOption {
+            FuseMountOption {
                 name: String::from("fsname=<name>"),
                 parser: parse_fsname,
                 validator: key_value_match,
@@ -168,12 +172,12 @@ mod param {
 mod param {
     // https://github.com/apple/darwin-xnu/blob/master/bsd/sys/mount.h#L288
     // TODO: use mount flags from libc
-    pub const MNT_RDONLY: i32 = 0x00000001; // read only filesystem
-    pub const MNT_NOSUID: i32 = 0x00000008; // don't honor setuid bits on fs
-    pub const MNT_NODEV: i32 = 0x00000010; // don't interpret special files
-    pub const MNT_FORCE: i32 = 0x00080000; // force unmount or readonly change
-    pub const MNT_NOUSERXATTR: i32 = 0x01000000; // Don't allow user extended attributes
-    pub const MNT_NOATIME: i32 = 0x10000000; // disable update of file access time
+    pub const MNT_RDONLY: i32 = 0x0000_0001; // read only filesystem
+    pub const MNT_NOSUID: i32 = 0x0000_0008; // don't honor setuid bits on fs
+    pub const MNT_NODEV: i32 = 0x0000_0010; // don't interpret special files
+    pub const MNT_FORCE: i32 = 0x0008_0000; // force unmount or readonly change
+    pub const MNT_NOUSERXATTR: i32 = 0x0100_0000; // Don't allow user extended attributes
+    pub const MNT_NOATIME: i32 = 0x1000_0000; // disable update of file access time
 
     pub const PAGE_SIZE: u32 = 4096;
 
@@ -185,10 +189,10 @@ mod param {
     pub const FUSE_IOC_TYPE_MODE: u8 = 5;
 
     pub const FUSE_FSSUBTYPE_UNKNOWN: u32 = 0;
-    pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000000000000001;
-    pub const FUSE_MOPT_DEBUG: u64 = 0x0000000000000040;
-    pub const FUSE_MOPT_FSNAME: u64 = 0x0000000000001000;
-    pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000000000800000;
+    pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
+    pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
+    pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
+    pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
 
     use libc::size_t;
     pub const MFSTYPENAMELEN: size_t = 16; // length of fs type name including null
@@ -210,27 +214,32 @@ mod param {
         rdev: u32,                        // dev_t for the /dev/osxfuse{n} in question
     }
 
-    use super::MountOption;
+    use super::FuseMountOption;
     use regex::Regex;
-    pub fn get_mount_options() -> Vec<MountOption> {
-        fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &MountOption, _option: &str) {}
-        fn parse_fuse_flag(args: &mut FuseMountArgs, mount_option: &MountOption, _option: &str) {
+    pub fn get_mount_options() -> Vec<FuseMountOption> {
+        fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &FuseMountOption, _option: &str) {
+        }
+        fn parse_fuse_flag(
+            args: &mut FuseMountArgs,
+            mount_option: &FuseMountOption,
+            _option: &str,
+        ) {
             if let Some(flag) = mount_option.fuse_flag {
                 args.altflags |= flag;
             }
         }
 
-        fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &MountOption, option: &str) {
+        fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
             let name = String::from(option.split('=').last().unwrap()); //Safe to use unwrap here, becuase option is always valid.
             copy_slice(
                 CString::new(name).expect("CString::new failed!").as_bytes(),
                 &mut args.fsname,
             );
         }
-        fn name_match(mount_option: &MountOption, option: &str) -> bool {
+        fn name_match(mount_option: &FuseMountOption, option: &str) -> bool {
             option == mount_option.name
         }
-        fn key_value_match(mount_option: &MountOption, option: &str) -> bool {
+        fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
             let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
             let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
@@ -238,21 +247,21 @@ mod param {
         }
 
         vec![
-            MountOption {
+            FuseMountOption {
                 name: String::from("ro"),
                 parser: empty_parser,
                 validator: name_match,
                 flag: Some(MNT_RDONLY),
                 fuse_flag: None,
             },
-            MountOption {
+            FuseMountOption {
                 name: String::from("allow_other"),
                 parser: parse_fuse_flag,
                 validator: name_match,
                 flag: None,
                 fuse_flag: Some(FUSE_MOPT_ALLOW_OTHER),
             },
-            MountOption {
+            FuseMountOption {
                 name: String::from("fsname=<name>"),
                 parser: parse_fsname,
                 validator: key_value_match,
@@ -277,18 +286,18 @@ mod param {
             copy_slice(volname.as_bytes(), &mut volname_slice);
 
             let mut args = FuseMountArgs {
-                mntpath: [0u8; MAXPATHLEN],
-                fsname: fsname_slice,
-                fstypename: fstypename_slice,
-                volname: volname_slice,
-                altflags: 0u64,
-                blocksize: FUSE_DEFAULT_BLOCKSIZE,
-                daemon_timeout: FUSE_DEFAULT_DAEMON_TIMEOUT,
-                fsid: 0u32,
-                fssubtype: FUSE_FSSUBTYPE_UNKNOWN,
-                iosize: FUSE_DEFAULT_IOSIZE,
-                random: 0u32,
-                rdev: 0u32,
+                mntpath: [0_u8; MAXPATHLEN],
+                fsname: [0_u8; MAXPATHLEN],
+                fstypename: [0_u8; MFSTYPENAMELEN],
+                volname: [0_u8; MAXPATHLEN],
+                altflags: 0_u64,
+                blocksize: 0_u32,
+                daemon_timeout: 0_u32,
+                fsid: 0_u32,
+                fssubtype: 0_u32,
+                iosize: 0_u32,
+                random: 0_u32,
+                rdev: 0_u32,
             };
 
             let mount_options_map = super::get_mount_options_map();
@@ -539,9 +548,9 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     // osxfuse/support/mount_osxfuse/mount_osxfuse.c#L1099
     // result = ioctl(fd, FUSEDEVIOCGETRANDOM, &drandom);
     // FUSEDEVIOCGETRANDOM // osxfuse/common/fuse_ioctl.h#L43
-    use nix::ioctl_read;
     let mut drandom: u32 = 0;
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
+    use nix::ioctl_read;
     let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
