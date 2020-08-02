@@ -8,7 +8,7 @@ use std::ffi::OsStr;
 use std::{error, fmt, mem};
 
 use super::abi::*;
-use super::argument::ArgumentIterator;
+use super::argument::FuseArgumentIterator;
 
 /// Error that may occur while reading and parsing a request from the kernel driver.
 #[derive(Debug)]
@@ -249,7 +249,8 @@ impl fmt::Display for Operation<'_> {
 }
 
 impl<'a> Operation<'a> {
-    fn parse(opcode: &fuse_opcode, data: &mut ArgumentIterator<'a>) -> Option<Self> {
+    fn parse(opcode: &fuse_opcode, data: &mut FuseArgumentIterator<'a>) -> Option<Self> {
+        #[allow(unsafe_code)]
         unsafe {
             Some(match opcode {
                 fuse_opcode::FUSE_LOOKUP => Operation::Lookup {
@@ -367,8 +368,9 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
         // Parse a raw packet as sent by the kernel driver into typed data. Every request always
         // begins with a `fuse_in_header` struct followed by arguments depending on the opcode.
         let data_len = data.len();
-        let mut data = ArgumentIterator::new(data);
+        let mut data = FuseArgumentIterator::new(data);
         // Parse header
+        #[allow(unsafe_code)]
         let header: &fuse_in_header =
             unsafe { data.fetch() }.ok_or_else(|| RequestError::ShortReadHeader(data.len()))?;
         // Parse/check opcode

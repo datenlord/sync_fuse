@@ -8,14 +8,14 @@ use std::mem;
 use std::os::unix::ffi::OsStrExt;
 
 /// An iterator that can be used to fetch typed arguments from a byte slice.
-pub struct ArgumentIterator<'a> {
+pub struct FuseArgumentIterator<'a> {
     data: &'a [u8],
 }
 
-impl<'a> ArgumentIterator<'a> {
+impl<'a> FuseArgumentIterator<'a> {
     /// Create a new argument iterator for the given byte slice.
-    pub fn new(data: &'a [u8]) -> ArgumentIterator<'a> {
-        ArgumentIterator { data }
+    pub fn new(data: &'a [u8]) -> FuseArgumentIterator<'a> {
+        FuseArgumentIterator { data }
     }
 
     /// Returns the size of the remaining data.
@@ -42,6 +42,7 @@ impl<'a> ArgumentIterator<'a> {
 
     /// Fetch a typed argument. Returns `None` if there's not enough data left. This function is
     /// unsafe because there is no guarantee that the data actually contains the type T.
+    #[allow(unsafe_code)]
     pub unsafe fn fetch<T>(&mut self) -> Option<&'a T> {
         let len = mem::size_of::<T>();
         let bytes = self.fetch_bytes(len)?;
@@ -51,6 +52,7 @@ impl<'a> ArgumentIterator<'a> {
     /// Fetch a (zero-terminated) string (can be non-utf8). Returns `None` if there's not enough
     /// data left or no zero-termination could be found. This function is unsafe because there is
     /// no guarantee that the data actually contains a string.
+    #[allow(unsafe_code)]
     pub unsafe fn fetch_str(&mut self) -> Option<&'a OsStr> {
         let len = self.data.iter().position(|&c| c == 0)?;
         let bytes = self.fetch_bytes(len)?;
@@ -74,7 +76,7 @@ mod tests {
 
     #[test]
     fn all_data() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         unsafe { it.fetch_str().unwrap() };
         let arg = it.fetch_all();
         assert_eq!(arg, [0x62, 0x61, 0x72, 0x00, 0x62, 0x61]);
@@ -82,7 +84,7 @@ mod tests {
 
     #[test]
     fn bytes_data() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         let arg = it.fetch_bytes(5).unwrap();
         assert_eq!(arg, [0x66, 0x6f, 0x6f, 0x00, 0x62]);
         let arg = it.fetch_bytes(2).unwrap();
@@ -92,7 +94,7 @@ mod tests {
 
     #[test]
     fn generic_argument() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         let arg: &TestArgument = unsafe { it.fetch().unwrap() };
         assert_eq!(arg.p1, 0x66);
         assert_eq!(arg.p2, 0x6f);
@@ -106,7 +108,7 @@ mod tests {
 
     #[test]
     fn string_argument() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         let arg = unsafe { it.fetch_str().unwrap() };
         assert_eq!(arg, "foo");
         let arg = unsafe { it.fetch_str().unwrap() };
@@ -116,7 +118,7 @@ mod tests {
 
     #[test]
     fn mixed_arguments() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         let arg: &TestArgument = unsafe { it.fetch().unwrap() };
         assert_eq!(arg.p1, 0x66);
         assert_eq!(arg.p2, 0x6f);
@@ -129,7 +131,7 @@ mod tests {
 
     #[test]
     fn out_of_data() {
-        let mut it = ArgumentIterator::new(&TEST_DATA);
+        let mut it = FuseArgumentIterator::new(&TEST_DATA);
         let _arg = it.fetch_bytes(8).unwrap();
         let arg: Option<&TestArgument> = unsafe { it.fetch() };
         assert!(arg.is_none());
