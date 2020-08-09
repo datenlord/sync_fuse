@@ -517,7 +517,7 @@ mod tests {
                 _ => panic!("Unexpected request operation"),
             }
         }
-        
+
         let bit = 1 << 7;
         let v = 268435456;
         println!(
