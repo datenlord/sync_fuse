@@ -78,7 +78,9 @@ mod tests {
     fn all_data() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
         #[allow(unsafe_code)]
-        unsafe { it.fetch_str().unwrap() };
+        unsafe {
+            it.fetch_str().unwrap()
+        };
         let arg = it.fetch_all();
         assert_eq!(arg, [0x62, 0x61, 0x72, 0x00, 0x62, 0x61]);
     }
