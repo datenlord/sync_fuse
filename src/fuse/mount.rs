@@ -11,6 +11,8 @@ use std::path::Path;
 
 use param::*;
 
+use super::Cast;
+
 pub struct FuseMountOption {
     pub name: String,
     pub parser: fn(&mut FuseMountArgs, &FuseMountOption, &str),
@@ -646,7 +648,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
 
     args.set_mntpath(mntpath_slice);
     args.set_random(drandom);
-    args.set_rdev(sb.st_rdev as u32);
+    args.set_rdev(sb.st_rdev.cast());
 
     // Default mount flags.
     let mut flag = MNT_NOSUID | MNT_NODEV | MNT_NOUSERXATTR | MNT_NOATIME;

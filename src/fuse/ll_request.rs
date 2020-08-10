@@ -9,6 +9,7 @@ use std::{error, fmt, mem};
 
 use super::abi::*;
 use super::argument::FuseArgumentIterator;
+use super::Cast;
 
 /// Error that may occur while reading and parsing a request from the kernel driver.
 #[derive(Debug)]
@@ -377,8 +378,8 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
         let opcode = fuse_opcode::try_from(header.opcode)
             .map_err(|_: InvalidOpcodeError| RequestError::UnknownOperation(header.opcode))?;
         // Check data size
-        if data_len < header.len as usize {
-            return Err(RequestError::ShortRead(data_len, header.len as usize));
+        if data_len < header.len.cast() {
+            return Err(RequestError::ShortRead(data_len, header.len.cast()));
         }
         // Parse/check operation arguments
         let operation =
@@ -479,6 +480,44 @@ mod tests {
 
     #[test]
     fn setattr() {
+        fn debug_attr(req: &Request<'_>) {
+            dbg!(req.header.len);
+            dbg!(req.header.opcode);
+            dbg!(req.unique());
+            dbg!(req.nodeid());
+            dbg!(req.uid());
+            dbg!(req.gid());
+            match req.operation() {
+                Operation::SetAttr { arg } => {
+                    let valid_bits = format!("{:b}", arg.valid);
+                    dbg!(valid_bits);
+                    dbg!(arg.valid);
+                    dbg!(arg.fh);
+                    dbg!(arg.size);
+                    // dbg!(arg.lock_owner);
+                    dbg!(arg.atime);
+                    dbg!(arg.mtime);
+                    dbg!(arg.atimensec);
+                    dbg!(arg.mtimensec);
+                    dbg!(arg.mode);
+                    #[cfg(target_os = "macos")]
+                    {
+                        dbg!(arg.bkuptime);
+                        dbg!(arg.chgtime);
+                        let crtime_hex = format!("{:x}", arg.crtime);
+                        dbg!(crtime_hex);
+                        dbg!(arg.crtime as i64);
+                        dbg!(arg.crtime);
+                        dbg!(arg.bkuptimensec);
+                        dbg!(arg.chgtimensec);
+                        dbg!(arg.crtimensec);
+                        dbg!(arg.flags);
+                    }
+                }
+                _ => panic!("Unexpected request operation"),
+            }
+        }
+
         let bit = 1 << 7;
         let v = 268435456;
         println!(
@@ -645,44 +684,6 @@ mod tests {
         //     }
         //     _ => panic!("Unexpected request operation"),
         // }
-
-        fn debug_attr(req: &Request<'_>) {
-            dbg!(req.header.len);
-            dbg!(req.header.opcode);
-            dbg!(req.unique());
-            dbg!(req.nodeid());
-            dbg!(req.uid());
-            dbg!(req.gid());
-            match req.operation() {
-                Operation::SetAttr { arg } => {
-                    let valid_bits = format!("{:b}", arg.valid);
-                    dbg!(valid_bits);
-                    dbg!(arg.valid);
-                    dbg!(arg.fh);
-                    dbg!(arg.size);
-                    // dbg!(arg.lock_owner);
-                    dbg!(arg.atime);
-                    dbg!(arg.mtime);
-                    dbg!(arg.atimensec);
-                    dbg!(arg.mtimensec);
-                    dbg!(arg.mode);
-                    #[cfg(target_os = "macos")]
-                    {
-                        dbg!(arg.bkuptime);
-                        dbg!(arg.chgtime);
-                        let crtime_hex = format!("{:x}", arg.crtime);
-                        dbg!(crtime_hex);
-                        dbg!(arg.crtime as i64);
-                        dbg!(arg.crtime);
-                        dbg!(arg.bkuptimensec);
-                        dbg!(arg.chgtimensec);
-                        dbg!(arg.crtimensec);
-                        dbg!(arg.flags);
-                    }
-                }
-                _ => panic!("Unexpected request operation"),
-            }
-        }
     }
 
     #[test]

@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 use super::mount;
 use super::reply::ReplySender;
+use super::Cast;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -25,12 +26,13 @@ pub struct fuse_args {
 
 /// Helper function to provide options as a fuse_args struct
 /// (which contains an argc count and an argv pointer)
+#[allow(dead_code)]
 fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T {
     let mut args = vec![CString::new("fuse-rs").unwrap()];
     args.extend(options.iter().map(|s| CString::new(s.as_bytes()).unwrap()));
     let argptrs: Vec<_> = args.iter().map(|s| s.as_ptr()).collect();
     f(&fuse_args {
-        argc: argptrs.len() as i32,
+        argc: argptrs.len().cast(),
         argv: argptrs.as_ptr(),
         allocated: 0,
     })
@@ -177,6 +179,7 @@ mod test {
 
     #[test]
     fn fuse_args() {
+        #[allow(unsafe_code)]
         with_fuse_args(&[OsStr::new("foo"), OsStr::new("bar")], |args| {
             assert_eq!(args.argc, 3);
             assert_eq!(
