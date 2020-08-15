@@ -640,12 +640,16 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::ioctl_read;
     #[allow(unsafe_code)]
 <<<<<<< HEAD
+<<<<<<< HEAD
     let result =
         unsafe { fuse_read_random(fd, conversion::cast_to_mut_ptr(&mut drandom)).unwrap() };
 =======
     let result = unsafe { 
         fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
 >>>>>>> Fix some lints issue
+=======
+    let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
+>>>>>>> Formet file
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
