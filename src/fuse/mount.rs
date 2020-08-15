@@ -632,7 +632,8 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
     use nix::ioctl_read;
     #[allow(unsafe_code)]
-    let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
+    let result = unsafe { 
+        fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
