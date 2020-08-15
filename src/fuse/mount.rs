@@ -224,10 +224,10 @@ mod param {
 
     #[allow(dead_code)]
     pub mod fuse_mopt_configs {
-    pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
-    pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
-    pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
-    pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
+        pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
+        pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
+        pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
+        pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
     }
     pub use fuse_mopt_configs::*;
 
@@ -632,8 +632,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
     use nix::ioctl_read;
     #[allow(unsafe_code)]
-    let result = unsafe { 
-        fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
+    let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
