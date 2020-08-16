@@ -33,6 +33,7 @@ fn get_all_options() -> String {
         .join(",")
 }
 
+/// Check if an option is valid.
 pub fn options_validator(option: String) -> Result<(), String> {
     let ret = option
         .split(',')
@@ -206,20 +207,29 @@ mod param {
     pub const MNT_NOUSERXATTR: i32 = 0x0100_0000; // Don't allow user extended attributes
     pub const MNT_NOATIME: i32 = 0x1000_0000; // disable update of file access time
 
-    pub const PAGE_SIZE: u32 = 4096;
+    #[allow(dead_code)]
+    pub mod fuse_default_configs {
+        pub const PAGE_SIZE: u32 = 4096;
 
-    pub const FUSE_DEFAULT_BLOCKSIZE: u32 = 4096;
-    pub const FUSE_DEFAULT_DAEMON_TIMEOUT: u32 = 60; // seconds
-    pub const FUSE_DEFAULT_IOSIZE: u32 = 16 * PAGE_SIZE;
+        pub const FUSE_FSSUBTYPE_UNKNOWN: u32 = 0;
+
+        pub const FUSE_DEFAULT_BLOCKSIZE: u32 = 4096;
+        pub const FUSE_DEFAULT_DAEMON_TIMEOUT: u32 = 60; // seconds
+        pub const FUSE_DEFAULT_IOSIZE: u32 = 16 * PAGE_SIZE;
+    }
+    pub use fuse_default_configs::*;
 
     pub const FUSE_IOC_MAGIC: u8 = b'F';
     pub const FUSE_IOC_TYPE_MODE: u8 = 5;
 
-    pub const FUSE_FSSUBTYPE_UNKNOWN: u32 = 0;
-    pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
-    pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
-    pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
-    pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
+    #[allow(dead_code)]
+    pub mod fuse_mopt_configs {
+        pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
+        pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
+        pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
+        pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
+    }
+    pub use fuse_mopt_configs::*;
 
     use libc::size_t;
     pub const MFSTYPENAMELEN: size_t = 16; // length of fs type name including null
