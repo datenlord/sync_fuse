@@ -17,7 +17,7 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
-use super::{Cast, Filesystem, FsSetattrParam};
+use super::{Cast, Filesystem, FsSetattrParam, FsSetxattrParam, FsWriteParam};
 
 /// We generally support async reads
 #[cfg(not(target_os = "macos"))]
@@ -325,11 +325,13 @@ impl<'a> Request<'a> {
                 assert_eq!(data.len(), arg.size.cast());
                 se.filesystem.write(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.offset.cast(),
-                    data,
-                    arg.write_flags,
+                    FsWriteParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        offset: arg.offset.cast(),
+                        data,
+                        flags: arg.write_flags,
+                    },
                     self.reply(),
                 );
             }
@@ -403,11 +405,13 @@ impl<'a> Request<'a> {
                 assert!(value.len() == arg.size.cast());
                 se.filesystem.setxattr(
                     self,
-                    self.request.nodeid(),
-                    name,
-                    value,
-                    arg.flags,
-                    get_position(arg),
+                    FsSetxattrParam {
+                        ino: self.request.nodeid(),
+                        name,
+                        value,
+                        flags: arg.flags,
+                        position: get_position(arg),
+                    },
                     self.reply(),
                 );
             }
