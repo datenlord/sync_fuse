@@ -11,7 +11,7 @@ use std::path::Path;
 
 use param::*;
 
-use super::Cast;
+use super::{conversion, Cast};
 
 pub struct FuseMountOption {
     pub name: String,
@@ -594,7 +594,7 @@ pub fn umount(mount_point: &Path) -> i32 {
     let mntpnt = mount_point.as_os_str();
     #[allow(unsafe_code)]
     unsafe {
-        libc::unmount(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE)
+        libc::unmount(conversion::cast_to_ptr(mntpnt), MNT_FORCE)
     }
 }
 
@@ -639,7 +639,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
         let ioctl_fail_str = "ioctl read random secret failed!";
         #[allow(unsafe_code)]
         unsafe {
-            libc::perror(ioctl_fail_str.as_ptr() as *const i8);
+            libc::perror(ioctl_fail_str.as_ptr().cast());
         }
         return -1;
     }
@@ -680,7 +680,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
             let e = Errno::from_i32(errno::errno());
             debug!("errno={}, {:?}", errno::errno(), e);
             let mount_fail_str = "mount failed!";
-            libc::perror(mount_fail_str.as_ptr() as *const i8);
+            libc::perror(mount_fail_str.as_ptr().cast());
 
             -1
         }

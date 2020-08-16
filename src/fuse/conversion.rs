@@ -21,7 +21,7 @@ pub(crate) trait Cast {
 
 impl<U> Cast for U {}
 
-pub(crate) const fn cast_to_ptr<T, U>(val: &T) -> *const U {
+pub(crate) const fn cast_to_ptr<T: ?Sized, U>(val: &T) -> *const U {
     let ptr: *const _ = val;
     ptr.cast()
 }
