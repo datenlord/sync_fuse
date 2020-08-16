@@ -24,6 +24,7 @@ use super::abi::{
     fuse_getxattr_out, fuse_kstatfs, fuse_lk_out, fuse_open_out, fuse_out_header, fuse_statfs_out,
     fuse_write_out,
 };
+use super::Cast;
 use super::{FileAttr, FileType};
 
 /// Generic reply callback to send data
@@ -51,6 +52,7 @@ fn as_bytes<T, U, F: FnOnce(&[&[u8]]) -> U>(data: &T, f: F) -> U {
         0 => f(&[]),
         len => {
             let p = data as *const T as *const u8;
+            #[allow(unsafe_code)]
             let bytes = unsafe { slice::from_raw_parts(p, len) };
             f(&[bytes])
         }
@@ -75,8 +77,9 @@ fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
         FileType::RegularFile => S_IFREG,
         FileType::Symlink => S_IFLNK,
         FileType::Socket => S_IFSOCK,
-    }) as u32
-        | perm as u32
+    })
+    .cast::<u32>()
+        | perm.cast::<u32>()
 }
 
 /// Returns a fuse_attr from FileAttr
@@ -167,7 +170,7 @@ impl<T> ReplyRaw<T> {
         assert!(self.sender.is_some());
         let len = bytes.iter().fold(0, |l, b| l + b.len());
         let header = fuse_out_header {
-            len: (mem::size_of::<fuse_out_header>() + len) as u32,
+            len: (mem::size_of::<fuse_out_header>() + len).cast(),
             error: -err,
             unique: self.unique,
         };
@@ -631,20 +634,21 @@ impl ReplyDirectory {
         if self.data.len() + entsize > self.data.capacity() {
             return true;
         }
+        #[allow(unsafe_code)]
         unsafe {
             let p = self.data.as_mut_ptr().add(self.data.len());
             // The following serialization won't produce error
             // because the size is checked before
             // TODO: Change the Param to use fuse_dirent directly
             bincode::serialize_into(&mut self.data, &ino).unwrap();
-            bincode::serialize_into(&mut self.data, &(offset as u64)).unwrap();
-            bincode::serialize_into(&mut self.data, &(name.len() as u32)).unwrap();
+            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap();
+            bincode::serialize_into(&mut self.data, &(name.len().cast::<u32>())).unwrap();
             bincode::serialize_into(&mut self.data, &(mode_from_kind_and_perm(kind, 0) >> 12))
                 .unwrap();
             let p = p.add(mem::size_of::<fuse_dirent>());
             ptr::copy_nonoverlapping(name.as_ptr(), p, name.len());
             let p = p.add(name.len());
-            ptr::write_bytes(p, 0u8, padlen);
+            ptr::write_bytes(p, 0_u8, padlen);
             let newlen = self.data.len() + padlen + name.len();
             self.data.set_len(newlen);
         }
@@ -793,7 +797,7 @@ mod test {
                 vec![0x12, 0x34, 0x78, 0x56],
             ],
         };
-        let reply: ReplyRaw<Data> = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyRaw<Data> = Reply::new(0xdead_beef, sender);
         reply.ok(&data);
     }
 
@@ -805,7 +809,7 @@ mod test {
                 0x00, 0x00,
             ]],
         };
-        let reply: ReplyRaw<Data> = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyRaw<Data> = Reply::new(0xdead_beef, sender);
         reply.error(66);
     }
 
@@ -817,7 +821,7 @@ mod test {
                 0x00, 0x00,
             ]],
         };
-        let reply: ReplyEmpty = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyEmpty = Reply::new(0xdead_beef, sender);
         reply.ok();
     }
 
@@ -832,7 +836,7 @@ mod test {
                 vec![0xde, 0xad, 0xbe, 0xef],
             ],
         };
-        let reply: ReplyData = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyData = Reply::new(0xdead_beef, sender);
         reply.data(&[0xde, 0xad, 0xbe, 0xef]);
     }
 
@@ -881,7 +885,7 @@ mod test {
                 ]
             },
         };
-        let reply: ReplyEntry = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyEntry = Reply::new(0xdead_beef, sender);
         let time = UNIX_EPOCH + Duration::new(0x1234, 0x5678);
         let ttl = Duration::new(0x8765, 0x4321);
         let attr = FileAttr {
@@ -944,7 +948,7 @@ mod test {
                 ]
             },
         };
-        let reply: ReplyAttr = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyAttr = Reply::new(0xdead_beef, sender);
         let time = UNIX_EPOCH + Duration::new(0x1234, 0x5678);
         let ttl = Duration::new(0x8765, 0x4321);
         let attr = FileAttr {
@@ -981,7 +985,7 @@ mod test {
                 ],
             ],
         };
-        let reply: ReplyXTimes = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyXTimes = Reply::new(0xdead_beef, sender);
         let time = UNIX_EPOCH + Duration::new(0x1234, 0x5678);
         reply.xtimes(time, time);
     }
@@ -1000,7 +1004,7 @@ mod test {
                 ],
             ],
         };
-        let reply: ReplyOpen = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyOpen = Reply::new(0xdead_beef, sender);
         reply.opened(0x1122, 0x33);
     }
 
@@ -1015,7 +1019,7 @@ mod test {
                 vec![0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
             ],
         };
-        let reply: ReplyWrite = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyWrite = Reply::new(0xdead_beef, sender);
         reply.written(0x1122);
     }
 
@@ -1038,7 +1042,7 @@ mod test {
                 ],
             ],
         };
-        let reply: ReplyStatfs = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyStatfs = Reply::new(0xdead_beef, sender);
         reply.statfs(&ReplyStatfsParam {
             blocks: 0x11,
             bfree: 0x22,
@@ -1099,7 +1103,7 @@ mod test {
                 ]
             },
         };
-        let reply: ReplyCreate = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyCreate = Reply::new(0xdead_beef, sender);
         let time = UNIX_EPOCH + Duration::new(0x1234, 0x5678);
         let ttl = Duration::new(0x8765, 0x4321);
         let attr = FileAttr {
@@ -1135,7 +1139,7 @@ mod test {
                 ],
             ],
         };
-        let reply: ReplyLock = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyLock = Reply::new(0xdead_beef, sender);
         reply.locked(0x11, 0x22, 0x33, 0x44);
     }
 
@@ -1150,7 +1154,7 @@ mod test {
                 vec![0x34, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
             ],
         };
-        let reply: ReplyBmap = Reply::new(0xdeadbeef, sender);
+        let reply: ReplyBmap = Reply::new(0xdead_beef, sender);
         reply.bmap(0x1234);
     }
 
@@ -1171,7 +1175,7 @@ mod test {
                 ],
             ],
         };
-        let mut reply = ReplyDirectory::new(0xdeadbeef, sender, 4096);
+        let mut reply = ReplyDirectory::new(0xdead_beef, sender, 4096);
         reply.add(0xaabb, 1, FileType::Directory, "hello");
         reply.add(0xccdd, 2, FileType::RegularFile, "world.rs");
         reply.ok();
@@ -1194,8 +1198,8 @@ mod test {
                 vec![0x78, 0x56, 0x34, 0x12, 0x00, 0x00, 0x00, 0x00],
             ],
         };
-        let reply = ReplyXattr::new(0xdeadbeef, sender);
-        reply.size(0x12345678);
+        let reply = ReplyXattr::new(0xdead_beef, sender);
+        reply.size(0x1234_5678);
     }
 
     #[test]
@@ -1209,14 +1213,14 @@ mod test {
                 vec![0x11, 0x22, 0x33, 0x44],
             ],
         };
-        let reply = ReplyXattr::new(0xdeadbeef, sender);
+        let reply = ReplyXattr::new(0xdead_beef, sender);
         reply.data(&[0x11, 0x22, 0x33, 0x44]);
     }
 
     #[test]
     fn async_reply() {
         let (tx, rx) = channel::<()>();
-        let reply: ReplyEmpty = Reply::new(0xdeadbeef, tx);
+        let reply: ReplyEmpty = Reply::new(0xdead_beef, tx);
         thread::spawn(move || {
             reply.ok();
         });
