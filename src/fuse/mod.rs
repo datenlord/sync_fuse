@@ -92,6 +92,35 @@ pub struct FileAttr {
     pub flags: u32,
 }
 
+/// Param passed to setattr
+#[derive(Debug)]
+pub struct FsSetattrParam {
+    /// Inode number
+    pub ino: u64,
+    /// Mode of file
+    pub mode: Option<u32>,
+    /// User id
+    pub uid: Option<u32>,
+    /// Group id
+    pub gid: Option<u32>,
+    /// Size in bytes
+    pub size: Option<u64>,
+    /// Time of last access
+    pub atime: Option<SystemTime>,
+    /// Time of last modification
+    pub mtime: Option<SystemTime>,
+    /// File handler
+    pub fh: Option<u64>,
+    /// Time of creation (macOS only)
+    pub crtime: Option<SystemTime>,
+    /// Time of change of meta data
+    pub chgtime: Option<SystemTime>,
+    /// Time of backup
+    pub bkuptime: Option<SystemTime>,
+    /// Flags (macOS only, see chflags(2))
+    pub flags: Option<u32>,
+}
+
 /// Filesystem trait.
 ///
 /// This trait must be implemented to provide a userspace filesystem via FUSE.
@@ -129,23 +158,7 @@ pub trait Filesystem {
     }
 
     /// Set file attributes.
-    fn setattr(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _mode: Option<u32>,
-        _uid: Option<u32>,
-        _gid: Option<u32>,
-        _size: Option<u64>,
-        _atime: Option<SystemTime>,
-        _mtime: Option<SystemTime>,
-        _fh: Option<u64>,
-        _crtime: Option<SystemTime>,
-        _chgtime: Option<SystemTime>,
-        _bkuptime: Option<SystemTime>,
-        _flags: Option<u32>,
-        reply: ReplyAttr,
-    ) {
+    fn setattr(&mut self, _req: &Request<'_>, _param: FsSetattrParam, reply: ReplyAttr) {
         reply.error(ENOSYS);
     }
 
