@@ -17,6 +17,7 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
+use super::Cast;
 use super::Filesystem;
 
 /// We generally support async reads
@@ -142,14 +143,14 @@ impl<'a> Request<'a> {
                     major: FUSE_KERNEL_VERSION,
                     minor: FUSE_KERNEL_MINOR_VERSION,
                     // max_readahead: arg.max_readahead, // accept any readahead size
-                    max_readahead: if (BUFFER_SIZE as u32) < arg.max_readahead {
-                        BUFFER_SIZE as u32
+                    max_readahead: if BUFFER_SIZE.cast::<u32>() < arg.max_readahead {
+                        BUFFER_SIZE.cast()
                     } else {
                         arg.max_readahead
                     }, // TODO: adjust BUFFER_SIZE according to max_readahead
                     flags: arg.flags & INIT_FLAGS, // use features given in INIT_FLAGS and reported as capable
                     unused: 0,
-                    max_write: MAX_WRITE_SIZE as u32, // TODO: use a max write size that fits into the session's buffer
+                    max_write: MAX_WRITE_SIZE.cast(), // TODO: use a max write size that fits into the session's buffer
                 };
                 debug!(
                     "INIT response: ABI {}.{}, flags {:#x}, max readahead {}, max write {}",
@@ -314,18 +315,18 @@ impl<'a> Request<'a> {
                     self,
                     self.request.nodeid(),
                     arg.fh,
-                    arg.offset as i64,
+                    arg.offset.cast(),
                     arg.size,
                     self.reply(),
                 );
             }
             ll_request::Operation::Write { arg, data } => {
-                assert_eq!(data.len(), arg.size as usize);
+                assert_eq!(data.len(), arg.size.cast());
                 se.filesystem.write(
                     self,
                     self.request.nodeid(),
                     arg.fh,
-                    arg.offset as i64,
+                    arg.offset.cast(),
                     data,
                     arg.write_flags,
                     self.reply(),
@@ -372,8 +373,8 @@ impl<'a> Request<'a> {
                     self,
                     self.request.nodeid(),
                     arg.fh,
-                    arg.offset as i64,
-                    ReplyDirectory::new(self.request.unique(), self.ch, arg.size as usize),
+                    arg.offset.cast(),
+                    ReplyDirectory::new(self.request.unique(), self.ch, arg.size.cast()),
                 );
             }
             ll_request::Operation::ReleaseDir { arg } => {
@@ -398,7 +399,7 @@ impl<'a> Request<'a> {
                     .statfs(self, self.request.nodeid(), self.reply());
             }
             ll_request::Operation::SetXAttr { arg, name, value } => {
-                assert!(value.len() == arg.size as usize);
+                assert!(value.len() == arg.size.cast());
                 se.filesystem.setxattr(
                     self,
                     self.request.nodeid(),
