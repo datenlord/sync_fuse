@@ -506,7 +506,7 @@ mod tests {
                         dbg!(arg.chgtime);
                         let crtime_hex = format!("{:x}", arg.crtime);
                         dbg!(crtime_hex);
-                        dbg!(arg.crtime as i64);
+                        dbg!(arg.crtime.cast::<u64>());
                         dbg!(arg.crtime);
                         dbg!(arg.bkuptimensec);
                         dbg!(arg.chgtimensec);

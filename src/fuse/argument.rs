@@ -46,7 +46,9 @@ impl<'a> FuseArgumentIterator<'a> {
     pub unsafe fn fetch<T>(&mut self) -> Option<&'a T> {
         let len = mem::size_of::<T>();
         let bytes = self.fetch_bytes(len)?;
-        (bytes.as_ptr() as *const T).as_ref()
+        // TODO: this might have alignment issue and fix later.
+        let ptr: *const T = bytes.as_ptr().cast();
+        ptr.as_ref()
     }
 
     /// Fetch a (zero-terminated) string (can be non-utf8). Returns `None` if there's not enough
