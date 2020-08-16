@@ -17,7 +17,7 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
-use super::{Cast, Filesystem, FsSetattrParam, FsSetxattrParam, FsWriteParam};
+use super::{Cast, Filesystem, FsReleaseParam, FsSetattrParam, FsSetxattrParam, FsWriteParam};
 
 /// We generally support async reads
 #[cfg(not(target_os = "macos"))]
@@ -345,17 +345,19 @@ impl<'a> Request<'a> {
                 );
             }
             ll_request::Operation::Release { arg } => {
-                let flush = match arg.release_flags & FUSE_RELEASE_FLUSH {
+                let flush_parameter = match arg.release_flags & FUSE_RELEASE_FLUSH {
                     0 => false,
                     _ => true,
                 };
                 se.filesystem.release(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.flags,
-                    arg.lock_owner,
-                    flush,
+                    FsReleaseParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        flags: arg.flags,
+                        lock_owner: arg.lock_owner,
+                        flush: flush_parameter,
+                    },
                     self.reply(),
                 );
             }

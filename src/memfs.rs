@@ -1,6 +1,7 @@
 use crate::fuse::{
-    Cast, FileAttr, FileType, Filesystem, FsSetattrParam, FsWriteParam, ReplyAttr, ReplyData,
-    ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
+    Cast, FileAttr, FileType, Filesystem, FsReleaseParam, FsSetattrParam, FsWriteParam, ReplyAttr,
+    ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request,
+    FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
 use log::{debug, error}; // info, warn
@@ -1178,42 +1179,33 @@ impl Filesystem for MemoryFilesystem {
         );
     }
 
-    fn release(
-        &mut self,
-        req: &Request<'_>,
-        ino: u64,
-        fh: u64,
-        flags: u32,
-        lock_owner: u64,
-        flush: bool,
-        reply: ReplyEmpty,
-    ) {
+    fn release(&mut self, req: &Request<'_>, param: FsReleaseParam, reply: ReplyEmpty) {
         debug!(
             "release(ino={}, fh={}, flags={}, lock_owner={}, flush={}, req={:?})",
-            ino, fh, flags, lock_owner, flush, req.request,
+            param.ino, param.fh, param.flags, param.lock_owner, param.flush, req.request,
         );
-        let inode = self.cache.get(&ino).unwrap_or_else(|| {
+        let inode = self.cache.get(&param.ino).unwrap_or_else(|| {
             panic!(
                 "release() found fs is inconsistent, the i-node of ino={} should be in cache",
-                ino
+                param.ino
             )
         });
-        if flush {
+        if param.flush {
             // TODO: support flush
         }
 
         // close the duplicated dir fd
-        unistd::close(fh.cast()).unwrap_or_else(|_| {
+        unistd::close(param.fh.cast()).unwrap_or_else(|_| {
             panic!(
                 "release() failed to close the file handler {} of ino={}",
-                fh, ino
+                param.fh, param.ino
             )
         });
         reply.ok();
         inode.dec_open_count();
         debug!(
             "release() successfully closed the file handler {} of ino={}",
-            fh, ino,
+            param.fh, param.ino,
         );
     }
 

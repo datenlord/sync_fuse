@@ -151,6 +151,16 @@ pub struct FsSetxattrParam<'a> {
     pub position: u32,
 }
 
+/// Param passed to setxattr
+#[derive(Debug)]
+pub struct FsReleaseParam {
+    pub ino: u64,
+    pub fh: u64,
+    pub flags: u32,
+    pub lock_owner: u64,
+    pub flush: bool,
+}
+
 /// Filesystem trait.
 ///
 /// This trait must be implemented to provide a userspace filesystem via FUSE.
@@ -340,16 +350,7 @@ pub trait Filesystem {
     /// the release. fh will contain the value set by the open method, or will be undefined
     /// if the open method didn't set any value. flags will contain the same flags as for
     /// open.
-    fn release(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _fh: u64,
-        _flags: u32,
-        _lock_owner: u64,
-        _flush: bool,
-        reply: ReplyEmpty,
-    ) {
+    fn release(&mut self, _req: &Request<'_>, _param: FsReleaseParam, reply: ReplyEmpty) {
         reply.ok();
     }
 
