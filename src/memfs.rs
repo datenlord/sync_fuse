@@ -1,6 +1,6 @@
 use crate::fuse::{
-    Cast, FileAttr, FileType, Filesystem, FsSetattrParam, ReplyAttr, ReplyData, ReplyDirectory,
-    ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
+    Cast, FileAttr, FileType, Filesystem, FsSetattrParam, FsWriteParam, ReplyAttr, ReplyData,
+    ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
 use log::{debug, error}; // info, warn
@@ -1626,46 +1626,37 @@ impl Filesystem for MemoryFilesystem {
         self.helper_remove_node(parent, &dir_name, Type::Directory, reply);
     }
 
-    fn write(
-        &mut self,
-        _req: &Request<'_>,
-        ino: u64,
-        fh: u64,
-        offset: i64,
-        data: &[u8],
-        flags: u32,
-        reply: ReplyWrite,
-    ) {
+    fn write(&mut self, _req: &Request<'_>, param: FsWriteParam, reply: ReplyWrite) {
         debug!(
             "write(ino={}, fh={}, offset={}, data-size={}, flags={})",
             // "write(ino={}, fh={}, offset={}, data-size={}, req={:?})",
-            ino,
-            fh,
-            offset,
-            data.len(),
-            flags,
+            param.ino,
+            param.fh,
+            param.offset,
+            param.data.len(),
+            param.flags,
             // req.request,
         );
 
-        let inode = self.cache.get_mut(&ino).unwrap_or_else(|| {
+        let inode = self.cache.get_mut(&param.ino).unwrap_or_else(|| {
             panic!(
                 "write() found fs is inconsistent, the i-node of ino={} should be in cache",
-                ino
+                param.ino
             )
         });
-        let o_flags = util::parse_oflag(flags);
-        let written_size = inode.write_file(fh, offset, data, o_flags);
+        let o_flags = util::parse_oflag(param.flags);
+        let written_size = inode.write_file(param.fh, param.offset, param.data, o_flags);
         reply.written(written_size.cast());
         debug!(
             "write() successfully wrote {} byte data to file ino={} at offset={},
                 the first at most 100 byte data are: {:?}",
-            data.len(),
-            ino,
-            offset,
-            if data.len() > 100 {
-                &data[0..100]
+            param.data.len(),
+            param.ino,
+            param.offset,
+            if param.data.len() > 100 {
+                &param.data[0..100]
             } else {
-                data
+                param.data
             },
         );
     }

@@ -121,6 +121,36 @@ pub struct FsSetattrParam {
     pub flags: Option<u32>,
 }
 
+/// Param passed to write
+#[derive(Debug)]
+pub struct FsWriteParam<'a> {
+    /// Inode number
+    pub ino: u64,
+    /// File handler
+    pub fh: u64,
+    /// Offset to write
+    pub offset: i64,
+    /// Data to write
+    pub data: &'a [u8],
+    /// Flags
+    pub flags: u32,
+}
+
+/// Param passed to setxattr
+#[derive(Debug)]
+pub struct FsSetxattrParam<'a> {
+    /// Inode number
+    pub ino: u64,
+    /// Attribute name
+    pub name: &'a OsStr,
+    /// Attribute value
+    pub value: &'a [u8],
+    /// Flags
+    pub flags: u32,
+    /// Offset within extended attribute
+    pub position: u32,
+}
+
 /// Filesystem trait.
 ///
 /// This trait must be implemented to provide a userspace filesystem via FUSE.
@@ -277,16 +307,7 @@ pub trait Filesystem {
     /// which case the return value of the write system call will reflect the return
     /// value of this operation. fh will contain the value set by the open method, or
     /// will be undefined if the open method didn't set any value.
-    fn write(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _fh: u64,
-        _offset: i64,
-        _data: &[u8],
-        _flags: u32,
-        reply: ReplyWrite,
-    ) {
+    fn write(&mut self, _req: &Request<'_>, _param: FsWriteParam, reply: ReplyWrite) {
         reply.error(ENOSYS);
     }
 
@@ -418,16 +439,7 @@ pub trait Filesystem {
     }
 
     /// Set an extended attribute.
-    fn setxattr(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _name: &OsStr,
-        _value: &[u8],
-        _flags: u32,
-        _position: u32,
-        reply: ReplyEmpty,
-    ) {
+    fn setxattr(&mut self, _req: &Request<'_>, _param: FsSetxattrParam, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 
