@@ -1626,7 +1626,7 @@ impl Filesystem for MemoryFilesystem {
         self.helper_remove_node(parent, &dir_name, Type::Directory, reply);
     }
 
-    fn write(&mut self, _req: &Request<'_>, param: FsWriteParam, reply: ReplyWrite) {
+    fn write(&mut self, _req: &Request<'_>, param: FsWriteParam<'_>, reply: ReplyWrite) {
         debug!(
             "write(ino={}, fh={}, offset={}, data-size={}, flags={})",
             // "write(ino={}, fh={}, offset={}, data-size={}, req={:?})",
