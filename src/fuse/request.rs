@@ -17,8 +17,7 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
-use super::Cast;
-use super::Filesystem;
+use super::{Cast, Filesystem, FsSetattrParam};
 
 /// We generally support async reads
 #[cfg(not(target_os = "macos"))]
@@ -237,18 +236,20 @@ impl<'a> Request<'a> {
                 let (crtime, chgtime, bkuptime, flags) = get_macos_setattr(arg);
                 se.filesystem.setattr(
                     self,
-                    self.request.nodeid(),
-                    mode,
-                    user_id,
-                    group_id,
-                    size,
-                    atime,
-                    m_time,
-                    fh,
-                    crtime,
-                    chgtime,
-                    bkuptime,
-                    flags,
+                    FsSetattrParam {
+                        ino: self.request.nodeid(),
+                        mode,
+                        uid: user_id,
+                        gid: group_id,
+                        size,
+                        atime,
+                        mtime: m_time,
+                        fh,
+                        crtime,
+                        chgtime,
+                        bkuptime,
+                        flags,
+                    },
                     self.reply(),
                 );
             }

@@ -1,6 +1,6 @@
 use crate::fuse::{
-    Cast, FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty,
-    ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
+    Cast, FileAttr, FileType, Filesystem, FsSetattrParam, ReplyAttr, ReplyData, ReplyDirectory,
+    ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
 use log::{debug, error}; // info, warn
@@ -1496,39 +1496,23 @@ impl Filesystem for MemoryFilesystem {
 
     /// called by the VFS to set attributes for a file. This method
     /// is called by chmod(2) and related system calls.
-    fn setattr(
-        &mut self,
-        req: &Request<'_>,
-        ino: u64,
-        mode: Option<u32>,
-        user_id: Option<u32>,
-        group_id: Option<u32>,
-        size: Option<u64>,
-        a_time: Option<SystemTime>,
-        m_time: Option<SystemTime>,
-        fh: Option<u64>,
-        crtime: Option<SystemTime>,
-        chgtime: Option<SystemTime>,
-        bkuptime: Option<SystemTime>,
-        flags: Option<u32>,
-        reply: ReplyAttr,
-    ) {
+    fn setattr(&mut self, req: &Request<'_>, param: FsSetattrParam, reply: ReplyAttr) {
         debug!(
             "setattr(ino={}, mode={:?}, uid={:?}, gid={:?}, size={:?},
                 atime={:?}, mtime={:?}, fh={:?}, crtime={:?}, chgtime={:?},
                 bkuptime={:?}, flags={:?}, req={:?})",
-            ino,
-            mode,
-            user_id,
-            group_id,
-            size,
-            a_time,
-            m_time,
-            fh,
-            crtime,
-            chgtime,
-            bkuptime,
-            flags,
+            param.ino,
+            param.mode,
+            param.uid,
+            param.gid,
+            param.size,
+            param.atime,
+            param.mtime,
+            param.fh,
+            param.crtime,
+            param.chgtime,
+            param.bkuptime,
+            param.flags,
             req.request,
         );
 
@@ -1536,7 +1520,7 @@ impl Filesystem for MemoryFilesystem {
             let ttl = Duration::new(MY_TTL_SEC, 0);
             let ts = SystemTime::now();
 
-            if let Some(b) = mode {
+            if let Some(b) = param.mode {
                 attr.perm = util::parse_mode_bits(b);
                 debug!("setattr set permission as: {}", attr.perm);
 
@@ -1545,44 +1529,44 @@ impl Filesystem for MemoryFilesystem {
                 debug_assert_eq!(kind, attr.kind);
             }
             // no replace
-            attr.uid = user_id.unwrap_or(attr.uid);
-            attr.gid = group_id.unwrap_or(attr.gid);
-            attr.size = size.unwrap_or(attr.size);
-            attr.atime = a_time.unwrap_or(attr.atime);
-            attr.mtime = m_time.unwrap_or(attr.mtime);
-            attr.crtime = crtime.unwrap_or(attr.crtime);
-            attr.flags = flags.unwrap_or(attr.flags);
+            attr.uid = param.uid.unwrap_or(attr.uid);
+            attr.gid = param.gid.unwrap_or(attr.gid);
+            attr.size = param.size.unwrap_or(attr.size);
+            attr.atime = param.atime.unwrap_or(attr.atime);
+            attr.mtime = param.mtime.unwrap_or(attr.mtime);
+            attr.crtime = param.crtime.unwrap_or(attr.crtime);
+            attr.flags = param.flags.unwrap_or(attr.flags);
 
-            if mode.is_some()
-                || user_id.is_some()
-                || group_id.is_some()
-                || size.is_some()
-                || a_time.is_some()
-                || m_time.is_some()
-                || crtime.is_some()
-                || chgtime.is_some()
-                || bkuptime.is_some()
-                || flags.is_some()
+            if param.mode.is_some()
+                || param.uid.is_some()
+                || param.gid.is_some()
+                || param.size.is_some()
+                || param.atime.is_some()
+                || param.mtime.is_some()
+                || param.crtime.is_some()
+                || param.chgtime.is_some()
+                || param.bkuptime.is_some()
+                || param.flags.is_some()
             {
                 attr.ctime = ts; // update ctime, since meta data might change in setattr
                 reply.attr(&ttl, attr);
                 debug!(
                     "setattr successfully set the attribute of ino={}, the set attr is {:?}",
-                    ino, attr,
+                    param.ino, attr,
                 );
             } else {
                 reply.error(ENODATA);
                 error!(
                     "setattr found all the input attributes are empty for the file of ino={}",
-                    ino,
+                    param.ino,
                 );
             }
         };
 
-        let inode = self.cache.get_mut(&ino).unwrap_or_else(|| {
+        let inode = self.cache.get_mut(&param.ino).unwrap_or_else(|| {
             panic!(
                 "setattr() found fs is inconsistent, the i-node of ino={} should be in cache",
-                ino
+                param.ino
             )
         });
         inode.set_attr(setattr_helper);
