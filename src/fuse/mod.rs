@@ -42,6 +42,7 @@ pub(crate) use conversion::Cast;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[allow(dead_code)]
 pub enum FileType {
     /// Named pipe (S_IFIFO)
     NamedPipe,
@@ -307,7 +308,7 @@ pub trait Filesystem {
     /// which case the return value of the write system call will reflect the return
     /// value of this operation. fh will contain the value set by the open method, or
     /// will be undefined if the open method didn't set any value.
-    fn write(&mut self, _req: &Request<'_>, _param: FsWriteParam, reply: ReplyWrite) {
+    fn write(&mut self, _req: &Request<'_>, _param: FsWriteParam<'_>, reply: ReplyWrite) {
         reply.error(ENOSYS);
     }
 
@@ -439,7 +440,7 @@ pub trait Filesystem {
     }
 
     /// Set an extended attribute.
-    fn setxattr(&mut self, _req: &Request<'_>, _param: FsSetxattrParam, reply: ReplyEmpty) {
+    fn setxattr(&mut self, _req: &Request<'_>, _param: FsSetxattrParam<'_>, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 

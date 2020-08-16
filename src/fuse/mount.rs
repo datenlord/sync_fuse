@@ -277,7 +277,7 @@ mod param {
             option == mount_option.name
         }
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
-            let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
+            let name = String::from(mount_option.name.split('=').next().unwrap()); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
             let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
             option_regex.is_match(option)
