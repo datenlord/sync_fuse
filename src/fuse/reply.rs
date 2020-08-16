@@ -24,8 +24,8 @@ use super::abi::{
     fuse_getxattr_out, fuse_kstatfs, fuse_lk_out, fuse_open_out, fuse_out_header, fuse_statfs_out,
     fuse_write_out,
 };
-use super::Cast;
-use super::{FileAttr, FileType};
+
+use super::{conversion, Cast, FileAttr, FileType};
 
 /// Generic reply callback to send data
 pub trait ReplySender: Send + 'static {
@@ -51,7 +51,7 @@ fn as_bytes<T, U, F: FnOnce(&[&[u8]]) -> U>(data: &T, f: F) -> U {
     match len {
         0 => f(&[]),
         len => {
-            let p = data as *const T as *const u8;
+            let p: *const u8 = conversion::cast_to_ptr(data);
             #[allow(unsafe_code)]
             let bytes = unsafe { slice::from_raw_parts(p, len) };
             f(&[bytes])
