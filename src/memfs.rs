@@ -63,7 +63,7 @@ mod util {
     }
     pub fn parse_mode_bits(mode: u32) -> u16 {
         #[cfg(target_os = "linux")]
-        let bits = parse_mode(mode).bits() as u16;
+        let bits = parse_mode(mode).bits().cast();
         #[cfg(target_os = "macos")]
         let bits = parse_mode(mode).bits();
 

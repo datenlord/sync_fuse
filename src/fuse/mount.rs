@@ -11,7 +11,7 @@ use std::path::Path;
 
 use param::*;
 
-use super::Cast;
+use super::{conversion, Cast};
 
 pub struct FuseMountOption {
     pub name: String,
@@ -390,10 +390,9 @@ pub fn umount(short_path: &Path) -> i32 {
     if unistd::geteuid().is_root() {
         // direct umount
         #[cfg(target_arch = "aarch64")]
-        let result = unsafe { libc::umount2(mntpnt as *const _ as *const u8, MNT_FORCE) };
+        let result = unsafe { libc::umount2(conversion::cast_to_ptr(mntpnt), MNT_FORCE) };
         #[cfg(target_arch = "x86_64")]
-        let result =
-            unsafe { libc::umount2(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE) };
+        let result = unsafe { libc::umount2(conversion::cast_to_ptr(mntpnt), MNT_FORCE) };
 
         result
     } else {
@@ -570,7 +569,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
             mntpath.as_ptr(),
             fstype.as_ptr(),
             flag,
-            opts.as_ptr() as *const c_void,
+            opts.as_ptr().cast(),
         );
         if result == 0 {
             debug!("mount {:?} to {:?} successfully!", mntpath, devpath);
@@ -582,7 +581,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
             #[cfg(target_arch = "aarch64")]
             libc::perror(mount_fail_str.as_ptr());
             #[cfg(target_arch = "x86_64")]
-            libc::perror(mount_fail_str.as_ptr() as *const i8);
+            libc::perror(mount_fail_str.as_ptr().cast());
 
             -1
         }
@@ -594,7 +593,7 @@ pub fn umount(mount_point: &Path) -> i32 {
     let mntpnt = mount_point.as_os_str();
     #[allow(unsafe_code)]
     unsafe {
-        libc::unmount(mntpnt as *const _ as *const u8 as *const i8, MNT_FORCE)
+        libc::unmount(conversion::cast_to_ptr(mntpnt), MNT_FORCE)
     }
 }
 
@@ -632,14 +631,15 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
     use nix::ioctl_read;
     #[allow(unsafe_code)]
-    let result = unsafe { fuse_read_random(fd, &mut drandom as *mut _).unwrap() };
+    let result =
+        unsafe { fuse_read_random(fd, conversion::cast_to_mut_ptr(&mut drandom)).unwrap() };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
         let ioctl_fail_str = "ioctl read random secret failed!";
         #[allow(unsafe_code)]
         unsafe {
-            libc::perror(ioctl_fail_str.as_ptr() as *const i8);
+            libc::perror(ioctl_fail_str.as_ptr().cast());
         }
         return -1;
     }
@@ -671,7 +671,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
             fstype.as_ptr(),
             mntpath.as_ptr(),
             flag,
-            &mut args as *mut _ as *mut c_void,
+            conversion::cast_to_mut_ptr(&mut args),
         );
         if result == 0 {
             debug!("mount {:?} to {:?} successfully!", mntpath, devpath);
@@ -680,7 +680,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
             let e = Errno::from_i32(errno::errno());
             debug!("errno={}, {:?}", errno::errno(), e);
             let mount_fail_str = "mount failed!";
-            libc::perror(mount_fail_str.as_ptr() as *const i8);
+            libc::perror(mount_fail_str.as_ptr().cast());
 
             -1
         }
