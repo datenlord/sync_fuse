@@ -151,14 +151,74 @@ pub struct FsSetxattrParam<'a> {
     pub position: u32,
 }
 
-/// Param passed to setxattr
+/// Param passed to release
 #[derive(Debug)]
 pub struct FsReleaseParam {
+    /// Inode number
     pub ino: u64,
+    /// File handler
     pub fh: u64,
+    /// Flags
     pub flags: u32,
+    /// Lock owner
     pub lock_owner: u64,
+    /// Flush
     pub flush: bool,
+}
+
+/// Param passed to getlk
+#[derive(Debug)]
+pub struct FsGetlkParam {
+    /// Inode number
+    pub ino: u64,
+    /// File handler
+    pub fh: u64,
+    /// Lock owner
+    pub lock_owner: u64,
+    /// Start
+    pub start: u64,
+    /// End
+    pub end: u64,
+    /// Type
+    pub typ: u32,
+    /// Process id
+    pub pid: u32,
+}
+
+/// Param passed to setlk
+#[derive(Debug)]
+pub struct FsSetlkParam {
+    /// Inode number
+    pub ino: u64,
+    /// File handler
+    pub fh: u64,
+    /// Lock owner
+    pub lock_owner: u64,
+    /// Start
+    pub start: u64,
+    /// End
+    pub end: u64,
+    /// Type
+    pub typ: u32,
+    /// Process id
+    pub pid: u32,
+    /// Sleep
+    pub sleep: bool,
+}
+
+/// Param passed to exchange
+#[derive(Debug)]
+pub struct FsExchangeParam<'a> {
+    /// Parent
+    pub parent: u64,
+    /// Name
+    pub name: &'a OsStr,
+    /// New parent
+    pub newparent: u64,
+    /// New name
+    pub newname: &'a OsStr,
+    /// Options
+    pub options: u64,
 }
 
 /// Filesystem trait.
@@ -503,18 +563,7 @@ pub trait Filesystem {
     }
 
     /// Test for a POSIX file lock.
-    fn getlk(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _fh: u64,
-        _lock_owner: u64,
-        _start: u64,
-        _end: u64,
-        _typ: u32,
-        _pid: u32,
-        reply: ReplyLock,
-    ) {
+    fn getlk(&mut self, _req: &Request<'_>, _param: FsGetlkParam, reply: ReplyLock) {
         reply.error(ENOSYS);
     }
 
@@ -525,19 +574,7 @@ pub trait Filesystem {
     /// used to fill in this field in getlk(). Note: if the locking methods are not
     /// implemented, the kernel will still allow file locking to work locally.
     /// Hence these are only interesting for network filesystems and similar.
-    fn setlk(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _fh: u64,
-        _lock_owner: u64,
-        _start: u64,
-        _end: u64,
-        _typ: u32,
-        _pid: u32,
-        _sleep: bool,
-        reply: ReplyEmpty,
-    ) {
+    fn setlk(&mut self, _req: &Request<'_>, _param: FsSetlkParam, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 
@@ -567,11 +604,7 @@ pub trait Filesystem {
     fn exchange(
         &mut self,
         _req: &Request<'_>,
-        _parent: u64,
-        _name: &OsStr,
-        _newparent: u64,
-        _newname: &OsStr,
-        _options: u64,
+        _param: FsExchangeParam,
         reply: ReplyEmpty,
     ) {
         reply.error(ENOSYS);
