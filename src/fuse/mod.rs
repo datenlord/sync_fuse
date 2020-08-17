@@ -410,7 +410,7 @@ pub trait Filesystem {
     /// the release. fh will contain the value set by the open method, or will be undefined
     /// if the open method didn't set any value. flags will contain the same flags as for
     /// open.
-    fn release(&mut self, _req: &Request<'_>, _param: FsReleaseParam, reply: ReplyEmpty) {
+    fn release(&mut self, _req: &Request<'_>, _param: FsReleaseParam<'_>, reply: ReplyEmpty) {
         reply.ok();
     }
 
@@ -563,7 +563,7 @@ pub trait Filesystem {
     }
 
     /// Test for a POSIX file lock.
-    fn getlk(&mut self, _req: &Request<'_>, _param: FsGetlkParam, reply: ReplyLock) {
+    fn getlk(&mut self, _req: &Request<'_>, _param: FsGetlkParam<'_>, reply: ReplyLock) {
         reply.error(ENOSYS);
     }
 
@@ -574,7 +574,7 @@ pub trait Filesystem {
     /// used to fill in this field in getlk(). Note: if the locking methods are not
     /// implemented, the kernel will still allow file locking to work locally.
     /// Hence these are only interesting for network filesystems and similar.
-    fn setlk(&mut self, _req: &Request<'_>, _param: FsSetlkParam, reply: ReplyEmpty) {
+    fn setlk(&mut self, _req: &Request<'_>, _param: FsSetlkParam<'_>, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 
@@ -601,7 +601,7 @@ pub trait Filesystem {
 
     /// macOS only (undocumented)
     #[cfg(target_os = "macos")]
-    fn exchange(&mut self, _req: &Request<'_>, _param: FsExchangeParam, reply: ReplyEmpty) {
+    fn exchange(&mut self, _req: &Request<'_>, _param: FsExchangeParam<'_>, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 
