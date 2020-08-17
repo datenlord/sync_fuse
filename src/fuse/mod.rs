@@ -601,12 +601,7 @@ pub trait Filesystem {
 
     /// macOS only (undocumented)
     #[cfg(target_os = "macos")]
-    fn exchange(
-        &mut self,
-        _req: &Request<'_>,
-        _param: FsExchangeParam,
-        reply: ReplyEmpty,
-    ) {
+    fn exchange(&mut self, _req: &Request<'_>, _param: FsExchangeParam, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 

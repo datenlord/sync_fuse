@@ -18,8 +18,8 @@ use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
 use super::{
-    Cast, Filesystem, FsGetlkParam, FsReleaseParam, FsSetattrParam, FsSetlkParam, FsSetxattrParam,
-    FsWriteParam, FsExchangeParam
+    Cast, Filesystem, FsExchangeParam, FsGetlkParam, FsReleaseParam, FsSetattrParam, FsSetlkParam,
+    FsSetxattrParam, FsWriteParam,
 };
 
 /// We generally support async reads
@@ -520,7 +520,7 @@ impl<'a> Request<'a> {
             } => {
                 se.filesystem.exchange(
                     self,
-                    FsExchangeParam{
+                    FsExchangeParam {
                         parent: arg.olddir,
                         name: &oldname,
                         newparent: arg.newdir,
