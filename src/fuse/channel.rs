@@ -28,8 +28,12 @@ pub struct fuse_args {
 /// (which contains an argc count and an argv pointer)
 #[allow(dead_code)]
 fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T {
-    let mut args = vec![CString::new("fuse-rs").unwrap()];
-    args.extend(options.iter().map(|s| CString::new(s.as_bytes()).unwrap()));
+    let mut args = vec![CString::new("fuse-rs").expect("CString::new failed")];
+    args.extend(
+        options
+            .iter()
+            .map(|s| CString::new(s.as_bytes()).expect("CString::new failed")),
+    );
     let argptrs: Vec<_> = args.iter().map(|s| s.as_ptr()).collect();
     f(&fuse_args {
         argc: argptrs.len().cast(),
@@ -50,14 +54,14 @@ impl Channel {
     /// given path. The kernel driver will delegate filesystem operations of
     /// the given path to the channel. If the channel is dropped, the path is
     /// unmounted.
-    pub fn new(mountpoint: &Path, options: &[&str]) -> io::Result<Channel> {
+    pub fn new(mountpoint: &Path, options: &[&str]) -> io::Result<Self> {
         // let mnt = CString::new(mountpoint.as_os_str().as_bytes())?;
         // let fd = unsafe { fuse_mount_compat25(mnt.as_ptr(), args) };
         let fd = mount::mount(mountpoint, options);
         if fd < 0 {
             Err(io::Error::last_os_error())
         } else {
-            Ok(Channel {
+            Ok(Self {
                 mountpoint: mountpoint.into(),
                 fd,
             })
@@ -66,7 +70,7 @@ impl Channel {
 
     /// Return path of the mounted filesystem
     pub fn mountpoint(&self) -> &Path {
-        &self.mountpoint.as_ref()
+        self.mountpoint.as_ref()
     }
 
     /// Receives data up to the capacity of the given buffer (can block).
@@ -110,7 +114,7 @@ impl Channel {
     /// Returns a sender object for this channel. The sender object can be
     /// used to send to the channel. Multiple sender objects can be used
     /// and they can safely be sent to other threads.
-    pub fn sender(&self) -> FuseChannelSender {
+    pub const fn sender(&self) -> FuseChannelSender {
         // Since write/writev syscalls are threadsafe, we can simply create
         // a sender by using the same fd and use it in other threads. Only
         // the channel closes the fd when dropped. If any sender is used after
@@ -138,7 +142,7 @@ pub struct FuseChannelSender {
 
 impl FuseChannelSender {
     /// Send all data in the slice of slice of bytes in a single write (can block).
-    pub fn send(&self, buffer: &[&[u8]]) -> io::Result<()> {
+    pub fn send(self, buffer: &[&[u8]]) -> io::Result<()> {
         let iovecs: Vec<_> = buffer.iter().map(|d| IoVec::from_slice(d)).collect();
         let res = uio::writev(self.fd, &iovecs);
         match res {
@@ -156,7 +160,7 @@ impl FuseChannelSender {
 
 impl ReplySender for FuseChannelSender {
     fn send(&self, data: &[&[u8]]) {
-        if let Err(err) = FuseChannelSender::send(self, data) {
+        if let Err(err) = Self::send(*self, data) {
             error!("Failed to send FUSE reply: {}", err);
         }
     }

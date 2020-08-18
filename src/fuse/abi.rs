@@ -5,11 +5,11 @@
 //! interface is versioned and capabilities are exchanged during the initialization (mounting)
 //! of a filesystem.
 //!
-//! OSXFUSE (macOS): https://github.com/osxfuse/fuse/blob/master/include/fuse_kernel.h
+//! OSXFUSE (macOS): <https://github.com/osxfuse/fuse/blob/master/include/fuse_kernel.h>
 //! - supports ABI 7.8 in OSXFUSE 2.x
 //! - supports ABI 7.19 since OSXFUSE 3.0.0
 //!
-//! libfuse (Linux/BSD): https://github.com/libfuse/libfuse/blob/master/include/fuse_kernel.h
+//! libfuse (Linux/BSD): <https://github.com/libfuse/libfuse/blob/master/include/fuse_kernel.h>
 //! - supports ABI 7.8 since FUSE 2.6.0
 //! - supports ABI 7.12 since FUSE 2.8.0
 //! - supports ABI 7.18 since FUSE 2.9.0
@@ -299,62 +299,62 @@ impl TryFrom<u32> for fuse_opcode {
 
     fn try_from(n: u32) -> Result<Self, Self::Error> {
         match n {
-            1 => Ok(fuse_opcode::FUSE_LOOKUP),
-            2 => Ok(fuse_opcode::FUSE_FORGET),
-            3 => Ok(fuse_opcode::FUSE_GETATTR),
-            4 => Ok(fuse_opcode::FUSE_SETATTR),
-            5 => Ok(fuse_opcode::FUSE_READLINK),
-            6 => Ok(fuse_opcode::FUSE_SYMLINK),
-            8 => Ok(fuse_opcode::FUSE_MKNOD),
-            9 => Ok(fuse_opcode::FUSE_MKDIR),
-            10 => Ok(fuse_opcode::FUSE_UNLINK),
-            11 => Ok(fuse_opcode::FUSE_RMDIR),
-            12 => Ok(fuse_opcode::FUSE_RENAME),
-            13 => Ok(fuse_opcode::FUSE_LINK),
-            14 => Ok(fuse_opcode::FUSE_OPEN),
-            15 => Ok(fuse_opcode::FUSE_READ),
-            16 => Ok(fuse_opcode::FUSE_WRITE),
-            17 => Ok(fuse_opcode::FUSE_STATFS),
-            18 => Ok(fuse_opcode::FUSE_RELEASE),
-            20 => Ok(fuse_opcode::FUSE_FSYNC),
-            21 => Ok(fuse_opcode::FUSE_SETXATTR),
-            22 => Ok(fuse_opcode::FUSE_GETXATTR),
-            23 => Ok(fuse_opcode::FUSE_LISTXATTR),
-            24 => Ok(fuse_opcode::FUSE_REMOVEXATTR),
-            25 => Ok(fuse_opcode::FUSE_FLUSH),
-            26 => Ok(fuse_opcode::FUSE_INIT),
-            27 => Ok(fuse_opcode::FUSE_OPENDIR),
-            28 => Ok(fuse_opcode::FUSE_READDIR),
-            29 => Ok(fuse_opcode::FUSE_RELEASEDIR),
-            30 => Ok(fuse_opcode::FUSE_FSYNCDIR),
-            31 => Ok(fuse_opcode::FUSE_GETLK),
-            32 => Ok(fuse_opcode::FUSE_SETLK),
-            33 => Ok(fuse_opcode::FUSE_SETLKW),
-            34 => Ok(fuse_opcode::FUSE_ACCESS),
-            35 => Ok(fuse_opcode::FUSE_CREATE),
-            36 => Ok(fuse_opcode::FUSE_INTERRUPT),
-            37 => Ok(fuse_opcode::FUSE_BMAP),
-            38 => Ok(fuse_opcode::FUSE_DESTROY),
+            1 => Ok(Self::FUSE_LOOKUP),
+            2 => Ok(Self::FUSE_FORGET),
+            3 => Ok(Self::FUSE_GETATTR),
+            4 => Ok(Self::FUSE_SETATTR),
+            5 => Ok(Self::FUSE_READLINK),
+            6 => Ok(Self::FUSE_SYMLINK),
+            8 => Ok(Self::FUSE_MKNOD),
+            9 => Ok(Self::FUSE_MKDIR),
+            10 => Ok(Self::FUSE_UNLINK),
+            11 => Ok(Self::FUSE_RMDIR),
+            12 => Ok(Self::FUSE_RENAME),
+            13 => Ok(Self::FUSE_LINK),
+            14 => Ok(Self::FUSE_OPEN),
+            15 => Ok(Self::FUSE_READ),
+            16 => Ok(Self::FUSE_WRITE),
+            17 => Ok(Self::FUSE_STATFS),
+            18 => Ok(Self::FUSE_RELEASE),
+            20 => Ok(Self::FUSE_FSYNC),
+            21 => Ok(Self::FUSE_SETXATTR),
+            22 => Ok(Self::FUSE_GETXATTR),
+            23 => Ok(Self::FUSE_LISTXATTR),
+            24 => Ok(Self::FUSE_REMOVEXATTR),
+            25 => Ok(Self::FUSE_FLUSH),
+            26 => Ok(Self::FUSE_INIT),
+            27 => Ok(Self::FUSE_OPENDIR),
+            28 => Ok(Self::FUSE_READDIR),
+            29 => Ok(Self::FUSE_RELEASEDIR),
+            30 => Ok(Self::FUSE_FSYNCDIR),
+            31 => Ok(Self::FUSE_GETLK),
+            32 => Ok(Self::FUSE_SETLK),
+            33 => Ok(Self::FUSE_SETLKW),
+            34 => Ok(Self::FUSE_ACCESS),
+            35 => Ok(Self::FUSE_CREATE),
+            36 => Ok(Self::FUSE_INTERRUPT),
+            37 => Ok(Self::FUSE_BMAP),
+            38 => Ok(Self::FUSE_DESTROY),
             #[cfg(feature = "abi-7-11")]
-            39 => Ok(fuse_opcode::FUSE_IOCTL),
+            39 => Ok(Self::FUSE_IOCTL),
             #[cfg(feature = "abi-7-11")]
-            40 => Ok(fuse_opcode::FUSE_POLL),
+            40 => Ok(Self::FUSE_POLL),
             #[cfg(feature = "abi-7-15")]
-            41 => Ok(fuse_opcode::FUSE_NOTIFY_REPLY),
+            41 => Ok(Self::FUSE_NOTIFY_REPLY),
             #[cfg(feature = "abi-7-16")]
-            42 => Ok(fuse_opcode::FUSE_BATCH_FORGET),
+            42 => Ok(Self::FUSE_BATCH_FORGET),
             #[cfg(feature = "abi-7-19")]
-            43 => Ok(fuse_opcode::FUSE_FALLOCATE),
+            43 => Ok(Self::FUSE_FALLOCATE),
 
             #[cfg(target_os = "macos")]
-            61 => Ok(fuse_opcode::FUSE_SETVOLNAME),
+            61 => Ok(Self::FUSE_SETVOLNAME),
             #[cfg(target_os = "macos")]
-            62 => Ok(fuse_opcode::FUSE_GETXTIMES),
+            62 => Ok(Self::FUSE_GETXTIMES),
             #[cfg(target_os = "macos")]
-            63 => Ok(fuse_opcode::FUSE_EXCHANGE),
+            63 => Ok(Self::FUSE_EXCHANGE),
 
             #[cfg(feature = "abi-7-12")]
-            4096 => Ok(fuse_opcode::CUSE_INIT),
+            4096 => Ok(Self::CUSE_INIT),
 
             _ => Err(InvalidOpcodeError),
         }

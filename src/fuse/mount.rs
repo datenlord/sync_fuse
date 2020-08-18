@@ -8,7 +8,14 @@ use std::fs;
 use std::os::unix::io::RawFd;
 use std::path::Path;
 
-use param::*;
+#[cfg(target_os = "macos")]
+use param::{
+    copy_slice, parse_mount_flag, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, MAXPATHLEN, MNT_NOATIME,
+    MNT_NODEV, MNT_NOSUID, MNT_NOUSERXATTR,
+};
+use param::{get_mount_options, FuseMountArgs, MNT_FORCE};
+#[cfg(target_os = "linux")]
+use param::{MS_NODEV, MS_NOSUID};
 
 use super::conversion;
 #[cfg(target_os = "macos")]
@@ -40,7 +47,7 @@ pub fn options_validator(option: String) -> Result<(), String> {
         .split(',')
         .collect::<Vec<_>>()
         .iter()
-        .all(|&op| get_mount_options().iter().any(|x| (x.validator)(x, &op)));
+        .all(|&op| get_mount_options().iter().any(|x| (x.validator)(x, op)));
     if ret {
         Ok(())
     } else {
@@ -147,9 +154,9 @@ mod param {
     }
 
     impl FuseMountArgs {
-        pub fn parse(options: &[&str]) -> FuseMountArgs {
+        pub fn parse(options: &[&str]) -> Self {
             // TODO: add default arguments
-            let mut args = FuseMountArgs {
+            let mut args = Self {
                 allow_other: 0,
                 flags: 0,
                 auto_unmount: 0,
@@ -311,7 +318,7 @@ mod param {
 
     use std::ffi::CString;
     impl FuseMountArgs {
-        pub fn parse(options: &[&str]) -> FuseMountArgs {
+        pub fn parse(options: &[&str]) -> Self {
             let fsname = CString::new("macfuse").expect("CString::new failed");
             let fstypename = CString::new("").expect("CString::new failed");
             let volname = CString::new("OSXFUSE Volume 0 (macfuse)").expect("CString::new failed");
@@ -323,7 +330,7 @@ mod param {
             let mut volname_slice = [0_u8; MAXPATHLEN];
             copy_slice(volname.as_bytes(), &mut volname_slice);
 
-            let mut args = FuseMountArgs {
+            let mut args = Self {
                 mntpath: [0_u8; MAXPATHLEN],
                 fsname: [0_u8; MAXPATHLEN],
                 fstypename: [0_u8; MFSTYPENAMELEN],
@@ -342,7 +349,7 @@ mod param {
             options.iter().for_each(|op| {
                 let key = op.split('=').collect::<Vec<_>>()[0].to_string();
                 let option = mount_options_map.get(&key).unwrap(); // Safe to use unwrap here, because key always exists
-                (option.parser)(&mut args, &option, &op)
+                (option.parser)(&mut args, option, op)
             });
             args
         }
@@ -362,17 +369,14 @@ mod param {
 
     pub fn copy_slice<T: Copy>(from: &[T], to: &mut [T]) {
         debug_assert!(to.len() >= from.len());
-        to[..from.len()].copy_from_slice(&from);
+        to[..from.len()].copy_from_slice(from);
     }
 
     pub fn parse_mount_flag(options: &[&str]) -> i32 {
         let mut flag: i32 = 0;
         options.iter().for_each(|&op| {
             let mount_options = get_mount_options();
-            let option = mount_options
-                .iter()
-                .find(|x| (x.validator)(x, &op))
-                .unwrap();
+            let option = mount_options.iter().find(|x| (x.validator)(x, op)).unwrap();
             if let Some(f) = option.flag {
                 flag |= f;
             }

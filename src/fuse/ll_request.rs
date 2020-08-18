@@ -7,7 +7,15 @@ use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::{error, fmt, mem};
 
-use super::abi::*;
+#[cfg(target_os = "macos")]
+use super::abi::fuse_exchange_in;
+use super::abi::{
+    fuse_access_in, fuse_bmap_in, fuse_create_in, fuse_flush_in, fuse_forget_in, fuse_fsync_in,
+    fuse_getxattr_in, fuse_in_header, fuse_init_in, fuse_interrupt_in, fuse_link_in, fuse_lk_in,
+    fuse_mkdir_in, fuse_mknod_in, fuse_opcode, fuse_open_in, fuse_read_in, fuse_release_in,
+    fuse_rename_in, fuse_setattr_in, fuse_setxattr_in, fuse_write_in, InvalidOpcodeError,
+};
+
 use super::argument::FuseArgumentIterator;
 use super::Cast;
 
@@ -27,17 +35,17 @@ pub enum RequestError {
 impl fmt::Display for RequestError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RequestError::ShortReadHeader(len) => write!(
+            Self::ShortReadHeader(len) => write!(
                 f,
                 "Short read of FUSE request header ({} < {})",
                 len,
                 mem::size_of::<fuse_in_header>()
             ),
-            RequestError::UnknownOperation(opcode) => write!(f, "Unknown FUSE opcode ({})", opcode),
-            RequestError::ShortRead(len, total) => {
+            Self::UnknownOperation(opcode) => write!(f, "Unknown FUSE opcode ({})", opcode),
+            Self::ShortRead(len, total) => {
                 write!(f, "Short read of FUSE request ({} < {})", len, total)
             }
-            RequestError::InsufficientData => write!(f, "Insufficient argument data"),
+            Self::InsufficientData => write!(f, "Insufficient argument data"),
         }
     }
 }
@@ -395,37 +403,37 @@ impl Request<'_> {
     /// distinguish between multiple concurrent requests. The unique id of a request may be
     /// reused in later requests after it has completed.
     #[inline]
-    pub fn unique(&self) -> u64 {
+    pub const fn unique(&self) -> u64 {
         self.header.unique
     }
 
     /// Returns the node id of the inode this request is targeted to.
     #[inline]
-    pub fn nodeid(&self) -> u64 {
+    pub const fn nodeid(&self) -> u64 {
         self.header.nodeid
     }
 
     /// Returns the UID that the process that triggered this request runs under.
     #[inline]
-    pub fn uid(&self) -> u32 {
+    pub const fn uid(&self) -> u32 {
         self.header.uid
     }
 
     /// Returns the GID that the process that triggered this request runs under.
     #[inline]
-    pub fn gid(&self) -> u32 {
+    pub const fn gid(&self) -> u32 {
         self.header.gid
     }
 
     /// Returns the PID of the process that triggered this request.
     #[inline]
-    pub fn pid(&self) -> u32 {
+    pub const fn pid(&self) -> u32 {
         self.header.pid
     }
 
     /// Returns the filesystem operation (and its arguments) of this request.
     #[inline]
-    pub fn operation(&self) -> &Operation<'_> {
+    pub const fn operation(&self) -> &Operation<'_> {
         &self.operation
     }
 }
