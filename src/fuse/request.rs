@@ -17,9 +17,11 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
+#[cfg(target_os = "macos")]
+use super::FsExchangeParam;
 use super::{
-    Cast, Filesystem, FsExchangeParam, FsGetlkParam, FsReleaseParam, FsSetattrParam, FsSetlkParam,
-    FsSetxattrParam, FsWriteParam,
+    Cast, Filesystem, FsGetlkParam, FsReleaseParam, FsSetattrParam, FsSetlkParam, FsSetxattrParam,
+    FsWriteParam,
 };
 
 /// We generally support async reads
