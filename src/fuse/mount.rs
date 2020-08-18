@@ -5,13 +5,14 @@ use nix::sys::stat::{self, FileStat, Mode};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
-use std::os::raw::c_void;
 use std::os::unix::io::RawFd;
 use std::path::Path;
 
 use param::*;
 
-use super::{conversion, Cast};
+use super::conversion;
+#[cfg(target_os = "macos")]
+use super::Cast;
 
 pub struct FuseMountOption {
     pub name: String,
@@ -102,7 +103,7 @@ mod param {
             option == mount_option.name
         }
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
-            let name = String::from(mount_option.name.split('=').nth(0).unwrap()); //Safe to use unwrap here, becuase name is always valid.
+            let name = String::from(mount_option.name.split('=').next().unwrap()); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
             let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
             option_regex.is_match(option)
@@ -389,8 +390,10 @@ pub fn umount(short_path: &Path) -> i32 {
 
     if unistd::geteuid().is_root() {
         // direct umount
+        #[allow(unsafe_code)]
         #[cfg(target_arch = "aarch64")]
         let result = unsafe { libc::umount2(conversion::cast_to_ptr(mntpnt), MNT_FORCE) };
+        #[allow(unsafe_code)]
         #[cfg(target_arch = "x86_64")]
         let result = unsafe { libc::umount2(conversion::cast_to_ptr(mntpnt), MNT_FORCE) };
 
@@ -474,7 +477,7 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
 
     assert!(mount_handle.status.success());
 
-    let mut buf = [0u8; 5];
+    let mut buf = [0_u8; 5];
     let iov = [IoVec::from_mut_slice(&mut buf[..])];
     let mut cmsgspace = cmsg_space!([RawFd; 1]);
     let msg = socket::recvmsg(local, &iov, Some(&mut cmsgspace), MsgFlags::empty())
@@ -563,6 +566,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     let opts = CString::new(&*opts).expect("CString::new failed");
     let flag = MS_NOSUID | MS_NODEV | args.get_flags();
     debug!("direct mount opts: {:?}", &opts);
+    #[allow(unsafe_code)]
     unsafe {
         let result = libc::mount(
             fsname.as_ptr(),

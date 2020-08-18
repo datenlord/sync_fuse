@@ -1829,6 +1829,7 @@ mod test {
         let new_dir_fd = Dir::open(&to_dir, oflags, Mode::empty()).unwrap();
         let old_cstr = CString::new(old_name).unwrap();
         let new_cstr = CString::new(new_name).unwrap();
+        #[allow(unsafe_code)]
         let res = unsafe {
             libc::renameat(
                 old_dir_fd.as_raw_fd(),
