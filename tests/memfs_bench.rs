@@ -3,7 +3,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 
-mod test_util;
+pub mod test_util;
 use test_util::DEFAULT_MOUNT_DIR;
 
 #[test]

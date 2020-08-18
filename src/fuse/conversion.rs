@@ -25,3 +25,9 @@ pub(crate) const fn cast_to_ptr<T: ?Sized, U>(val: &T) -> *const U {
     let ptr: *const _ = val;
     ptr.cast()
 }
+
+#[allow(dead_code)]
+pub(crate) fn cast_to_mut_ptr<T: ?Sized, U>(val: &mut T) -> *mut U {
+    let ptr: *mut _ = val;
+    ptr.cast()
+}

@@ -10,7 +10,7 @@ use std::fs;
 use std::iter;
 use std::path::Path;
 
-mod test_util;
+pub mod test_util;
 use test_util::DEFAULT_MOUNT_DIR;
 use test_util::FILE_CONTENT;
 

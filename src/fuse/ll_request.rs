@@ -506,7 +506,7 @@ mod tests {
                         dbg!(arg.chgtime);
                         let crtime_hex = format!("{:x}", arg.crtime);
                         dbg!(crtime_hex);
-                        dbg!(arg.crtime as i64);
+                        dbg!(arg.crtime.cast::<u64>());
                         dbg!(arg.crtime);
                         dbg!(arg.bkuptimensec);
                         dbg!(arg.chgtimensec);
@@ -519,10 +519,10 @@ mod tests {
         }
 
         let bit = 1 << 7;
-        let v = 268435456;
+        let v = 0x1000_0000;
         println!(
             "{:#x}={:#b}={} {:b} {:x}",
-            v, v, v, bit, 18446744071626706816u64
+            v, v, v, bit, 18_446_744_071_626_706_816_u64
         );
 
         let reqs: Vec<[u8; 168]> = vec![

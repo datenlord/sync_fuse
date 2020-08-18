@@ -17,8 +17,7 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
-use super::Cast;
-use super::Filesystem;
+use super::{Cast, Filesystem, FsSetattrParam, FsSetxattrParam, FsWriteParam};
 
 /// We generally support async reads
 #[cfg(not(target_os = "macos"))]
@@ -113,6 +112,18 @@ impl<'a> Request<'a> {
         #[inline]
         fn get_position(_arg: &fuse_setxattr_in) -> u32 {
             0
+        }
+        #[cfg(not(target_os = "macos"))]
+        #[inline]
+        fn get_macos_setattr(
+            _arg: &fuse_setattr_in,
+        ) -> (
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<u32>,
+        ) {
+            (None, None, None, None)
         }
         debug!("{}", self.request);
 
@@ -222,33 +233,23 @@ impl<'a> Request<'a> {
                     0 => None,
                     _ => Some(arg.fh),
                 };
-                #[cfg(not(target_os = "macos"))]
-                #[inline]
-                fn get_macos_setattr(
-                    _arg: &fuse_setattr_in,
-                ) -> (
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<u32>,
-                ) {
-                    (None, None, None, None)
-                }
                 let (crtime, chgtime, bkuptime, flags) = get_macos_setattr(arg);
                 se.filesystem.setattr(
                     self,
-                    self.request.nodeid(),
-                    mode,
-                    user_id,
-                    group_id,
-                    size,
-                    atime,
-                    m_time,
-                    fh,
-                    crtime,
-                    chgtime,
-                    bkuptime,
-                    flags,
+                    FsSetattrParam {
+                        ino: self.request.nodeid(),
+                        mode,
+                        uid: user_id,
+                        gid: group_id,
+                        size,
+                        atime,
+                        mtime: m_time,
+                        fh,
+                        crtime,
+                        chgtime,
+                        bkuptime,
+                        flags,
+                    },
                     self.reply(),
                 );
             }
@@ -324,11 +325,13 @@ impl<'a> Request<'a> {
                 assert_eq!(data.len(), arg.size.cast());
                 se.filesystem.write(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.offset.cast(),
-                    data,
-                    arg.write_flags,
+                    FsWriteParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        offset: arg.offset.cast(),
+                        data,
+                        flags: arg.write_flags,
+                    },
                     self.reply(),
                 );
             }
@@ -402,11 +405,13 @@ impl<'a> Request<'a> {
                 assert!(value.len() == arg.size.cast());
                 se.filesystem.setxattr(
                     self,
-                    self.request.nodeid(),
-                    name,
-                    value,
-                    arg.flags,
-                    get_position(arg),
+                    FsSetxattrParam {
+                        ino: self.request.nodeid(),
+                        name,
+                        value,
+                        flags: arg.flags,
+                        position: get_position(arg),
+                    },
                     self.reply(),
                 );
             }

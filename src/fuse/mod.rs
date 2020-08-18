@@ -42,6 +42,7 @@ pub(crate) use conversion::Cast;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[allow(dead_code)]
 pub enum FileType {
     /// Named pipe (S_IFIFO)
     NamedPipe,
@@ -92,6 +93,65 @@ pub struct FileAttr {
     pub flags: u32,
 }
 
+/// Param passed to setattr
+#[derive(Debug)]
+pub struct FsSetattrParam {
+    /// Inode number
+    pub ino: u64,
+    /// Mode of file
+    pub mode: Option<u32>,
+    /// User id
+    pub uid: Option<u32>,
+    /// Group id
+    pub gid: Option<u32>,
+    /// Size in bytes
+    pub size: Option<u64>,
+    /// Time of last access
+    pub atime: Option<SystemTime>,
+    /// Time of last modification
+    pub mtime: Option<SystemTime>,
+    /// File handler
+    pub fh: Option<u64>,
+    /// Time of creation (macOS only)
+    pub crtime: Option<SystemTime>,
+    /// Time of change of meta data
+    pub chgtime: Option<SystemTime>,
+    /// Time of backup
+    pub bkuptime: Option<SystemTime>,
+    /// Flags (macOS only, see chflags(2))
+    pub flags: Option<u32>,
+}
+
+/// Param passed to write
+#[derive(Debug)]
+pub struct FsWriteParam<'a> {
+    /// Inode number
+    pub ino: u64,
+    /// File handler
+    pub fh: u64,
+    /// Offset to write
+    pub offset: i64,
+    /// Data to write
+    pub data: &'a [u8],
+    /// Flags
+    pub flags: u32,
+}
+
+/// Param passed to setxattr
+#[derive(Debug)]
+pub struct FsSetxattrParam<'a> {
+    /// Inode number
+    pub ino: u64,
+    /// Attribute name
+    pub name: &'a OsStr,
+    /// Attribute value
+    pub value: &'a [u8],
+    /// Flags
+    pub flags: u32,
+    /// Offset within extended attribute
+    pub position: u32,
+}
+
 /// Filesystem trait.
 ///
 /// This trait must be implemented to provide a userspace filesystem via FUSE.
@@ -129,23 +189,7 @@ pub trait Filesystem {
     }
 
     /// Set file attributes.
-    fn setattr(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _mode: Option<u32>,
-        _uid: Option<u32>,
-        _gid: Option<u32>,
-        _size: Option<u64>,
-        _atime: Option<SystemTime>,
-        _mtime: Option<SystemTime>,
-        _fh: Option<u64>,
-        _crtime: Option<SystemTime>,
-        _chgtime: Option<SystemTime>,
-        _bkuptime: Option<SystemTime>,
-        _flags: Option<u32>,
-        reply: ReplyAttr,
-    ) {
+    fn setattr(&mut self, _req: &Request<'_>, _param: FsSetattrParam, reply: ReplyAttr) {
         reply.error(ENOSYS);
     }
 
@@ -264,16 +308,7 @@ pub trait Filesystem {
     /// which case the return value of the write system call will reflect the return
     /// value of this operation. fh will contain the value set by the open method, or
     /// will be undefined if the open method didn't set any value.
-    fn write(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _fh: u64,
-        _offset: i64,
-        _data: &[u8],
-        _flags: u32,
-        reply: ReplyWrite,
-    ) {
+    fn write(&mut self, _req: &Request<'_>, _param: FsWriteParam<'_>, reply: ReplyWrite) {
         reply.error(ENOSYS);
     }
 
@@ -405,16 +440,7 @@ pub trait Filesystem {
     }
 
     /// Set an extended attribute.
-    fn setxattr(
-        &mut self,
-        _req: &Request<'_>,
-        _ino: u64,
-        _name: &OsStr,
-        _value: &[u8],
-        _flags: u32,
-        _position: u32,
-        reply: ReplyEmpty,
-    ) {
+    fn setxattr(&mut self, _req: &Request<'_>, _param: FsSetxattrParam<'_>, reply: ReplyEmpty) {
         reply.error(ENOSYS);
     }
 
