@@ -113,6 +113,18 @@ impl<'a> Request<'a> {
         fn get_position(_arg: &fuse_setxattr_in) -> u32 {
             0
         }
+        #[cfg(not(target_os = "macos"))]
+        #[inline]
+        fn get_macos_setattr(
+            _arg: &fuse_setattr_in,
+        ) -> (
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<SystemTime>,
+            Option<u32>,
+        ) {
+            (None, None, None, None)
+        }
         debug!("{}", self.request);
 
         match self.request.operation() {
@@ -221,18 +233,6 @@ impl<'a> Request<'a> {
                     0 => None,
                     _ => Some(arg.fh),
                 };
-                #[cfg(not(target_os = "macos"))]
-                #[inline]
-                fn get_macos_setattr(
-                    _arg: &fuse_setattr_in,
-                ) -> (
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<SystemTime>,
-                    Option<u32>,
-                ) {
-                    (None, None, None, None)
-                }
                 let (crtime, chgtime, bkuptime, flags) = get_macos_setattr(arg);
                 se.filesystem.setattr(
                     self,
