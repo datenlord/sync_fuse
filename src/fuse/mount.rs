@@ -10,8 +10,9 @@ use std::path::Path;
 
 use param::*;
 
-use super::{conversion, Cast};
+use super::conversion;
 #[cfg(target_os = "macos")]
+use super::Cast;
 
 pub struct FuseMountOption {
     pub name: String,
