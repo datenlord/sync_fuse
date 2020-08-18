@@ -59,7 +59,7 @@ impl<'a> FuseArgumentIterator<'a> {
         let len = self.data.iter().position(|&c| c == 0)?;
         let bytes = self.fetch_bytes(len)?;
         let _zero = self.fetch_bytes(1)?;
-        Some(OsStr::from_bytes(&bytes))
+        Some(OsStr::from_bytes(bytes))
     }
 }
 
