@@ -44,9 +44,9 @@ pub struct Session<FS: Filesystem> {
 
 impl<FS: Filesystem> Session<FS> {
     /// Create a new session by mounting the given filesystem to the given mountpoint
-    pub fn new(filesystem: FS, mountpoint: &Path, options: &[&str]) -> io::Result<Session<FS>> {
+    pub fn new(filesystem: FS, mountpoint: &Path, options: &[&str]) -> io::Result<Self> {
         info!("mounting {:?}", mountpoint);
-        Channel::new(mountpoint, options).map(|ch| Session {
+        Channel::new(mountpoint, options).map(|ch| Self {
             filesystem,
             ch,
             proto_major: 0,
