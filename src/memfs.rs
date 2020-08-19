@@ -1276,9 +1276,24 @@ impl Filesystem for MemoryFilesystem {
         let read_helper = |content: &Vec<u8>| {
             if offset.cast::<usize>() < content.len() {
                 let read_data = if (offset.cast::<usize>() + size.cast::<usize>()) < content.len() {
-                    &content[offset.cast()..(offset.cast::<usize>() + size.cast::<usize>())]
+                    content
+                        .get(offset.cast()..(offset.cast::<usize>() + size.cast::<usize>()))
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Indexing is out of bounds, offset={}, size={}, content length={}",
+                                offset,
+                                size,
+                                content.len()
+                            )
+                        })
                 } else {
-                    &content[offset.cast()..]
+                    content.get(offset.cast()..).unwrap_or_else(|| {
+                        panic!(
+                            "Indexing is out of bounds, offset={}, content length={}",
+                            offset,
+                            content.len()
+                        )
+                    })
                 };
                 debug!(
                     "read() successfully from the file of ino={}, the read size is: {:?}",
@@ -1644,11 +1659,11 @@ impl Filesystem for MemoryFilesystem {
             param.data.len(),
             param.ino,
             param.offset,
-            if param.data.len() > 100 {
-                &param.data[0..100]
+            if let Some(data) = param.data.get(0..100) {
+                data
             } else {
                 param.data
-            },
+            }
         );
     }
 
