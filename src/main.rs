@@ -28,7 +28,7 @@ fn main() {
 
     let mountpoint = OsStr::new(matches.value_of("mountpoint").unwrap()); // safe to use unwrap() here, because mountpoint is required
     let options: Vec<&str> = match matches.values_of("options") {
-        Some(options) => options.map(|o| o.split(',')).flatten().collect(),
+        Some(options) => options.flat_map(|o| o.split(',')).collect(),
         None => Vec::new(),
     };
     debug!("{:?}", &options);

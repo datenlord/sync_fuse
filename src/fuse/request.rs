@@ -105,12 +105,12 @@ impl<'a> Request<'a> {
         }
         #[cfg(target_os = "macos")]
         #[inline]
-        fn get_position(arg: &fuse_setxattr_in) -> u32 {
+        const fn get_position(arg: &fuse_setxattr_in) -> u32 {
             arg.position
         }
         #[cfg(not(target_os = "macos"))]
         #[inline]
-        fn get_position(_arg: &fuse_setxattr_in) -> u32 {
+        const fn get_position(_arg: &fuse_setxattr_in) -> u32 {
             0
         }
         #[cfg(not(target_os = "macos"))]
@@ -194,7 +194,7 @@ impl<'a> Request<'a> {
 
             ll_request::Operation::Lookup { name } => {
                 se.filesystem
-                    .lookup(self, self.request.nodeid(), &name, self.reply());
+                    .lookup(self, self.request.nodeid(), name, self.reply());
             }
             ll_request::Operation::Forget { arg } => {
                 se.filesystem
@@ -261,7 +261,7 @@ impl<'a> Request<'a> {
                 se.filesystem.mknod(
                     self,
                     self.request.nodeid(),
-                    &name,
+                    name,
                     arg.mode,
                     arg.rdev,
                     self.reply(),
@@ -269,21 +269,21 @@ impl<'a> Request<'a> {
             }
             ll_request::Operation::MkDir { arg, name } => {
                 se.filesystem
-                    .mkdir(self, self.request.nodeid(), &name, arg.mode, self.reply());
+                    .mkdir(self, self.request.nodeid(), name, arg.mode, self.reply());
             }
             ll_request::Operation::Unlink { name } => {
                 se.filesystem
-                    .unlink(self, self.request.nodeid(), &name, self.reply());
+                    .unlink(self, self.request.nodeid(), name, self.reply());
             }
             ll_request::Operation::RmDir { name } => {
                 se.filesystem
-                    .rmdir(self, self.request.nodeid(), &name, self.reply());
+                    .rmdir(self, self.request.nodeid(), name, self.reply());
             }
             ll_request::Operation::SymLink { name, link } => {
                 se.filesystem.symlink(
                     self,
                     self.request.nodeid(),
-                    &name,
+                    name,
                     &Path::new(link),
                     self.reply(),
                 );
@@ -292,7 +292,7 @@ impl<'a> Request<'a> {
                 se.filesystem.rename(
                     self,
                     self.request.nodeid(),
-                    &name,
+                    name,
                     arg.newdir,
                     &newname,
                     self.reply(),
@@ -303,7 +303,7 @@ impl<'a> Request<'a> {
                     self,
                     arg.oldnodeid,
                     self.request.nodeid(),
-                    &name,
+                    name,
                     self.reply(),
                 );
             }
@@ -435,7 +435,7 @@ impl<'a> Request<'a> {
                 se.filesystem.create(
                     self,
                     self.request.nodeid(),
-                    &name,
+                    name,
                     arg.mode,
                     arg.flags,
                     self.reply(),
@@ -510,9 +510,9 @@ impl<'a> Request<'a> {
                 se.filesystem.exchange(
                     self,
                     arg.olddir,
-                    &oldname,
+                    oldname,
                     arg.newdir,
-                    &newname,
+                    newname,
                     arg.options,
                     self.reply(),
                 );
@@ -529,28 +529,28 @@ impl<'a> Request<'a> {
     /// Returns the unique identifier of this request
     #[inline]
     #[allow(dead_code)]
-    pub fn unique(&self) -> u64 {
+    pub const fn unique(&self) -> u64 {
         self.request.unique()
     }
 
     /// Returns the uid of this request
     #[inline]
     #[allow(dead_code)]
-    pub fn uid(&self) -> u32 {
+    pub const fn uid(&self) -> u32 {
         self.request.uid()
     }
 
     /// Returns the gid of this request
     #[inline]
     #[allow(dead_code)]
-    pub fn gid(&self) -> u32 {
+    pub const fn gid(&self) -> u32 {
         self.request.gid()
     }
 
     /// Returns the pid of this request
     #[inline]
     #[allow(dead_code)]
-    pub fn pid(&self) -> u32 {
+    pub const fn pid(&self) -> u32 {
         self.request.pid()
     }
 }

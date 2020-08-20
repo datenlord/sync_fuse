@@ -95,7 +95,7 @@ mod util {
         }
     }
 
-    pub fn convert_node_type(file_type: &Type) -> FileType {
+    pub fn convert_node_type(file_type: Type) -> FileType {
         match file_type {
             Type::Directory => FileType::Directory,
             Type::File => FileType::RegularFile,
@@ -495,13 +495,13 @@ impl INode {
             })
             .filter(|e| match e.file_type() {
                 Some(t) => match t {
-                    Type::Fifo => false,
-                    Type::CharacterDevice => false,
-                    Type::Directory => true,
-                    Type::BlockDevice => false,
+                    Type::Fifo
+                    | Type::CharacterDevice
+                    | Type::Directory
+                    | Type::BlockDevice
+                    | Type::Symlink
+                    | Type::Socket => false,
                     Type::File => true,
-                    Type::Symlink => false,
-                    Type::Socket => false,
                 },
                 None => false,
             })
@@ -908,7 +908,7 @@ impl MemoryFilesystem {
         node_type: Type,
         reply: ReplyEntry,
     ) {
-        let node_kind = util::convert_node_type(&node_type);
+        let node_kind = util::convert_node_type(node_type);
         // pre-check
         let parent_inode = self.cache.get(&parent).unwrap_or_else(|| {
             panic!(
@@ -1035,7 +1035,7 @@ impl MemoryFilesystem {
         node_type: Type,
         reply: ReplyEmpty,
     ) {
-        let node_kind = util::convert_node_type(&node_type);
+        let node_kind = util::convert_node_type(node_type);
         let node_ino: u64;
         {
             // pre-checks
@@ -1331,7 +1331,7 @@ impl Filesystem for MemoryFilesystem {
                 reply.add(
                     child_ino,
                     offset + i.cast::<i64>() + 1, // i + 1 means the index of the next entry
-                    util::convert_node_type(&child_entry.entry_type),
+                    util::convert_node_type(child_entry.entry_type),
                     child_name,
                 );
                 num_child_entries += 1;
@@ -1380,25 +1380,23 @@ impl Filesystem for MemoryFilesystem {
                     parent
                 )
             });
-            match parent_inode.get_entry(&child_name) {
-                Some(child_entry) => {
-                    ino = child_entry.ino;
-                    child_type = util::convert_node_type(&child_entry.entry_type);
-                }
-                None => {
-                    reply.error(ENOENT);
-                    debug!(
-                        "lookup() failed to find the file name={:?} under parent directory of ino={}",
-                        child_name, parent
-                    );
-                    return;
-                }
+
+            if let Some(child_entry) = parent_inode.get_entry(&child_name) {
+                ino = child_entry.ino;
+                child_type = util::convert_node_type(child_entry.entry_type);
+            } else {
+                reply.error(ENOENT);
+                debug!(
+                    "lookup() failed to find the file name={:?} under parent directory of ino={}",
+                    child_name, parent
+                );
+                return;
             }
         }
 
         let lookup_helper = |attr: &FileAttr| {
             let ttl = Duration::new(MY_TTL_SEC, 0);
-            reply.entry(&ttl, &attr, MY_GENERATION);
+            reply.entry(&ttl, attr, MY_GENERATION);
             debug!(
                 "lookup() successfully found the file name={:?} of ino={}
                     under parent ino={}, the attr is: {:?}",
@@ -1759,7 +1757,7 @@ impl Filesystem for MemoryFilesystem {
             //     debug_assert_eq!(os_newname, replaced_entry.name);
             // } else {
             // move child on disk
-            INode::helper_move_file(&parent_inode, &old_name, &new_parent_inode, newname).unwrap_or_else(|_| panic!("rename() failed to move the old file name={:?} of ino={} under old parent ino={}
+            INode::helper_move_file(parent_inode, &old_name, new_parent_inode, newname).unwrap_or_else(|_| panic!("rename() failed to move the old file name={:?} of ino={} under old parent ino={}
                     to the new file name={:?} under new parent ino={}", old_name, old_entry.ino, parent, newname, new_parent));
             debug!(
                 "rename() moved on disk the old file name={:?} of ino={} under old parent ino={}
