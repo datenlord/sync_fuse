@@ -675,13 +675,13 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
 
     #[allow(unsafe_code)]
     unsafe {
-        let result = libc::mount(
+        let mount_result = libc::mount(
             fstype.as_ptr(),
             mntpath.as_ptr(),
             flag,
             conversion::cast_to_mut_ptr(&mut args),
         );
-        if result == 0 {
+        if mount_result == 0 {
             debug!("mount {:?} to {:?} successfully!", mntpath, devpath);
             fd
         } else {

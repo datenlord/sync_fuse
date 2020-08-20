@@ -627,8 +627,8 @@ impl ReplyDirectory {
     /// A transparent offset value can be provided for each entry. The kernel uses these
     /// value to request the next entries in further readdir calls
     pub fn add<T: AsRef<OsStr>>(&mut self, ino: u64, offset: i64, kind: FileType, name: T) -> bool {
-        let name = name.as_ref().as_bytes();
-        let entlen = mem::size_of::<fuse_dirent>() + name.len();
+        let name_bytes = name.as_ref().as_bytes();
+        let entlen = mem::size_of::<fuse_dirent>() + name_bytes.len();
         let entsize = (entlen + mem::size_of::<u64>() - 1) & !(mem::size_of::<u64>() - 1); // 64bit align
         let padlen = entsize - entlen;
         if self.data.len() + entsize > self.data.capacity() {
@@ -642,14 +642,14 @@ impl ReplyDirectory {
             // TODO: Change the Param to use fuse_dirent directly
             bincode::serialize_into(&mut self.data, &ino).unwrap();
             bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap();
-            bincode::serialize_into(&mut self.data, &(name.len().cast::<u32>())).unwrap();
+            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap();
             bincode::serialize_into(&mut self.data, &(mode_from_kind_and_perm(kind, 0) >> 12))
                 .unwrap();
-            let p = p.add(mem::size_of::<fuse_dirent>());
-            ptr::copy_nonoverlapping(name.as_ptr(), p, name.len());
-            let p = p.add(name.len());
-            ptr::write_bytes(p, 0_u8, padlen);
-            let newlen = self.data.len() + padlen + name.len();
+            let p1 = p.add(mem::size_of::<fuse_dirent>());
+            ptr::copy_nonoverlapping(name_bytes.as_ptr(), p1, name_bytes.len());
+            let p2 = p1.add(name_bytes.len());
+            ptr::write_bytes(p2, 0_u8, padlen);
+            let newlen = self.data.len() + padlen + name_bytes.len();
             self.data.set_len(newlen);
         }
         false
