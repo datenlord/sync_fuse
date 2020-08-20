@@ -17,7 +17,12 @@ use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
 use super::session::{Session, BUFFER_SIZE, MAX_WRITE_SIZE};
-use super::{Cast, Filesystem, FsSetattrParam, FsSetxattrParam, FsWriteParam};
+#[cfg(target_os = "macos")]
+use super::FsExchangeParam;
+use super::{
+    Cast, Filesystem, FsGetlkParam, FsReleaseParam, FsSetattrParam, FsSetlkParam, FsSetxattrParam,
+    FsWriteParam,
+};
 
 /// We generally support async reads
 #[cfg(not(target_os = "macos"))]
@@ -345,17 +350,19 @@ impl<'a> Request<'a> {
                 );
             }
             ll_request::Operation::Release { arg } => {
-                let flush = match arg.release_flags & FUSE_RELEASE_FLUSH {
+                let flush_parameter = match arg.release_flags & FUSE_RELEASE_FLUSH {
                     0 => false,
                     _ => true,
                 };
                 se.filesystem.release(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.flags,
-                    arg.lock_owner,
-                    flush,
+                    FsReleaseParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        flags: arg.flags,
+                        lock_owner: arg.lock_owner,
+                        flush: flush_parameter,
+                    },
                     self.reply(),
                 );
             }
@@ -444,41 +451,47 @@ impl<'a> Request<'a> {
             ll_request::Operation::GetLk { arg } => {
                 se.filesystem.getlk(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.owner,
-                    arg.lk.start,
-                    arg.lk.end,
-                    arg.lk.typ,
-                    arg.lk.pid,
+                    FsGetlkParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        lock_owner: arg.owner,
+                        start: arg.lk.start,
+                        end: arg.lk.end,
+                        typ: arg.lk.typ,
+                        pid: arg.lk.pid,
+                    },
                     self.reply(),
                 );
             }
             ll_request::Operation::SetLk { arg } => {
                 se.filesystem.setlk(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.owner,
-                    arg.lk.start,
-                    arg.lk.end,
-                    arg.lk.typ,
-                    arg.lk.pid,
-                    false,
+                    FsSetlkParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        lock_owner: arg.owner,
+                        start: arg.lk.start,
+                        end: arg.lk.end,
+                        typ: arg.lk.typ,
+                        pid: arg.lk.pid,
+                        sleep: false,
+                    },
                     self.reply(),
                 );
             }
             ll_request::Operation::SetLkW { arg } => {
                 se.filesystem.setlk(
                     self,
-                    self.request.nodeid(),
-                    arg.fh,
-                    arg.owner,
-                    arg.lk.start,
-                    arg.lk.end,
-                    arg.lk.typ,
-                    arg.lk.pid,
-                    true,
+                    FsSetlkParam {
+                        ino: self.request.nodeid(),
+                        fh: arg.fh,
+                        lock_owner: arg.owner,
+                        start: arg.lk.start,
+                        end: arg.lk.end,
+                        typ: arg.lk.typ,
+                        pid: arg.lk.pid,
+                        sleep: true,
+                    },
                     self.reply(),
                 );
             }
@@ -509,11 +522,13 @@ impl<'a> Request<'a> {
             } => {
                 se.filesystem.exchange(
                     self,
-                    arg.olddir,
-                    oldname,
-                    arg.newdir,
-                    newname,
-                    arg.options,
+                    FsExchangeParam {
+                        parent: arg.olddir,
+                        name: &oldname,
+                        newparent: arg.newdir,
+                        newname: &newname,
+                        options: arg.options,
+                    },
                     self.reply(),
                 );
             }
