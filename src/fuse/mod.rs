@@ -38,7 +38,7 @@ mod mount;
 mod reply;
 mod request;
 mod session;
-pub(crate) use conversion::Cast;
+pub use conversion::Cast;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

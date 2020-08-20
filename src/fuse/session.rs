@@ -44,9 +44,9 @@ pub struct Session<FS: Filesystem> {
 
 impl<FS: Filesystem> Session<FS> {
     /// Create a new session by mounting the given filesystem to the given mountpoint
-    pub fn new(filesystem: FS, mountpoint: &Path, options: &[&str]) -> io::Result<Session<FS>> {
+    pub fn new(filesystem: FS, mountpoint: &Path, options: &[&str]) -> io::Result<Self> {
         info!("mounting {:?}", mountpoint);
-        Channel::new(mountpoint, options).map(|ch| Session {
+        Channel::new(mountpoint, options).map(|ch| Self {
             filesystem,
             ch,
             proto_major: 0,
@@ -82,13 +82,10 @@ impl<FS: Filesystem> Session<FS> {
                     None => break,
                 },
                 Err(err) => match err.raw_os_error() {
-                    // Operation interrupted. Accordingly to FUSE, this is safe to retry
-                    Some(ENOENT) => continue,
-                    // Interrupted system call, retry
-                    Some(EINTR) => continue,
-                    // Explicitly try again
-                    Some(EAGAIN) => continue,
-                    // Filesystem was unmounted, quit the loop
+                    // ENOENT: Operation interrupted. Accordingly to FUSE, this is safe to retry
+                    // EINTR: Interrupted system call, retry
+                    // EAGAIN: Explicitly try again
+                    Some(ENOENT) | Some(EINTR) | Some(EAGAIN) => continue,
                     Some(ENODEV) => break,
                     // Unhandled error
                     _ => return Err(err),

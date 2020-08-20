@@ -153,9 +153,9 @@ pub struct ReplyRaw<T> {
 }
 
 impl<T> Reply for ReplyRaw<T> {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyRaw<T> {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
         let sender = Box::new(sender);
-        ReplyRaw {
+        Self {
             unique,
             sender: Some(sender),
             marker: PhantomData,
@@ -216,8 +216,8 @@ pub struct ReplyEmpty {
 }
 
 impl Reply for ReplyEmpty {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyEmpty {
-        ReplyEmpty {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -244,8 +244,8 @@ pub struct ReplyData {
 }
 
 impl Reply for ReplyData {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyData {
-        ReplyData {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -272,8 +272,8 @@ pub struct ReplyEntry {
 }
 
 impl Reply for ReplyEntry {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyEntry {
-        ReplyEntry {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -308,8 +308,8 @@ pub struct ReplyAttr {
 }
 
 impl Reply for ReplyAttr {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyAttr {
-        ReplyAttr {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -343,8 +343,8 @@ pub struct ReplyXTimes {
 
 #[cfg(target_os = "macos")]
 impl Reply for ReplyXTimes {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyXTimes {
-        ReplyXTimes {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -381,8 +381,8 @@ pub struct ReplyOpen {
 }
 
 impl Reply for ReplyOpen {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyOpen {
-        ReplyOpen {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -414,8 +414,8 @@ pub struct ReplyWrite {
 }
 
 impl Reply for ReplyWrite {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyWrite {
-        ReplyWrite {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -442,8 +442,8 @@ pub struct ReplyStatfs {
 }
 
 impl Reply for ReplyStatfs {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyStatfs {
-        ReplyStatfs {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -505,8 +505,8 @@ pub struct ReplyCreate {
 }
 
 impl Reply for ReplyCreate {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyCreate {
-        ReplyCreate {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -549,8 +549,8 @@ pub struct ReplyLock {
 }
 
 impl Reply for ReplyLock {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyLock {
-        ReplyLock {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -585,8 +585,8 @@ pub struct ReplyBmap {
 }
 
 impl Reply for ReplyBmap {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyBmap {
-        ReplyBmap {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
@@ -616,8 +616,8 @@ pub struct ReplyDirectory {
 
 impl ReplyDirectory {
     /// Creates a new ReplyDirectory with a specified buffer size.
-    pub fn new<S: ReplySender>(unique: u64, sender: S, size: usize) -> ReplyDirectory {
-        ReplyDirectory {
+    pub fn new<S: ReplySender>(unique: u64, sender: S, size: usize) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
             data: Vec::with_capacity(size),
         }
@@ -675,8 +675,8 @@ pub struct ReplyXattr {
 }
 
 impl Reply for ReplyXattr {
-    fn new<S: ReplySender>(unique: u64, sender: S) -> ReplyXattr {
-        ReplyXattr {
+    fn new<S: ReplySender>(unique: u64, sender: S) -> Self {
+        Self {
             reply: Reply::new(unique, sender),
         }
     }
