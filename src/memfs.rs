@@ -16,6 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::convert::AsRef;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::result::Result;
 use std::ops::{Deref, Drop};
 use std::os::raw::c_int;
 use std::os::unix::ffi::OsStrExt;
