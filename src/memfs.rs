@@ -16,6 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::convert::AsRef;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::result::Result;
 use std::ops::{Deref, Drop};
 use std::os::raw::c_int;
 use std::os::unix::ffi::OsStrExt;
@@ -488,8 +489,8 @@ impl INode {
             .dir_fd
             .borrow_mut()
             .iter()
-            .filter(|e| e.is_ok())
-            .map(|e| e.unwrap()) // safe to use unwrap() here
+            .filter(Result::is_ok)
+            .map(Result::unwrap) // safe to use unwrap() here
             .filter(|e| {
                 let bytes = e.file_name().to_bytes();
                 !bytes.starts_with(&[b'.']) // skip hidden entries, '.' and '..'

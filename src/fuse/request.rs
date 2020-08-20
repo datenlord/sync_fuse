@@ -289,7 +289,7 @@ impl<'a> Request<'a> {
                     self,
                     self.request.nodeid(),
                     name,
-                    &Path::new(link),
+                    Path::new(link),
                     self.reply(),
                 );
             }
@@ -299,7 +299,7 @@ impl<'a> Request<'a> {
                     self.request.nodeid(),
                     name,
                     arg.newdir,
-                    &newname,
+                    newname,
                     self.reply(),
                 );
             }
@@ -524,9 +524,9 @@ impl<'a> Request<'a> {
                     self,
                     FsExchangeParam {
                         parent: arg.olddir,
-                        name: &oldname,
+                        name: oldname,
                         newparent: arg.newdir,
-                        newname: &newname,
+                        newname,
                         options: arg.options,
                     },
                     self.reply(),
