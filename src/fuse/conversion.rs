@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 /// A type cast trait used to replace as conversion.
-pub(crate) trait Cast {
+pub trait Cast {
     /// Performs the conversion.
     fn cast<T>(self) -> T
     where
@@ -21,13 +21,13 @@ pub(crate) trait Cast {
 
 impl<U> Cast for U {}
 
-pub(crate) const fn cast_to_ptr<T: ?Sized, U>(val: &T) -> *const U {
+pub const fn cast_to_ptr<T: ?Sized, U>(val: &T) -> *const U {
     let ptr: *const _ = val;
     ptr.cast()
 }
 
 #[allow(dead_code)]
-pub(crate) fn cast_to_mut_ptr<T: ?Sized, U>(val: &mut T) -> *mut U {
+pub fn cast_to_mut_ptr<T: ?Sized, U>(val: &mut T) -> *mut U {
     let ptr: *mut _ = val;
     ptr.cast()
 }

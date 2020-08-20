@@ -14,12 +14,12 @@ pub struct FuseArgumentIterator<'a> {
 
 impl<'a> FuseArgumentIterator<'a> {
     /// Create a new argument iterator for the given byte slice.
-    pub fn new(data: &'a [u8]) -> FuseArgumentIterator<'a> {
+    pub const fn new(data: &'a [u8]) -> FuseArgumentIterator<'a> {
         FuseArgumentIterator { data }
     }
 
     /// Returns the size of the remaining data.
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.data.len()
     }
 
