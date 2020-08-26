@@ -38,7 +38,9 @@ mod mount;
 mod reply;
 mod request;
 mod session;
+mod utils;
 pub use conversion::Cast;
+pub use utils::Uint;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
