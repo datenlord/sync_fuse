@@ -1,6 +1,6 @@
 use crate::fuse::{
     Cast, FileAttr, FileType, Filesystem, FsReleaseParam, FsSetattrParam, FsWriteParam, ReplyAttr,
-    ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request,
+    ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, Uint,
     FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
@@ -1455,7 +1455,7 @@ impl Filesystem for MemoryFilesystem {
             let previous_count = inode.dec_lookup_count_by(nlookup);
             current_count = inode.get_lookup_count();
             debug_assert!(current_count >= 0);
-            debug_assert_eq!(previous_count - current_count, nlookup.cast()); // assert thread-safe
+            debug_assert_eq!(previous_count.overflow_sub(current_count), nlookup.cast()); // assert thread-safe
             debug!(
                 "forget() successfully reduced lookup count of ino={} from {} to {}",
                 ino, previous_count, current_count,
