@@ -23,6 +23,7 @@ macro_rules! impl_from {
                 res
             }
 
+            #[inline]
             fn overflow_mul(self, other: $target) -> Self {
                 let (res, overflow) = self.overflowing_mul(other);
                 debug_assert!(
@@ -33,6 +34,7 @@ macro_rules! impl_from {
                 res
             }
 
+            #[inline]
             fn overflow_div(self, other: $target) -> Self {
                 let (res, overflow) = self.overflowing_div(other);
                 debug_assert!(
@@ -43,7 +45,7 @@ macro_rules! impl_from {
                 res
             }
         }
-    }
+    };
 }
 impl_from!(u8);
 impl_from!(u16);
@@ -57,7 +59,6 @@ impl_from!(i64);
 impl_from!(i128);
 impl_from!(usize);
 impl_from!(isize);
-
 
 /// A type cast trait used to do the integer arithmetic.
 pub trait Uint<T> {
@@ -73,4 +74,3 @@ pub trait Uint<T> {
     /// Overflow div.
     fn overflow_div(self, other: Self) -> Self;
 }
-
