@@ -1,6 +1,6 @@
-macro_rules! impl_from {
+macro_rules! impl_overflow_arithmetic {
     ($target: ty) => {
-        impl Uint<$target> for $target {
+        impl OverflowArithmetic<$target> for $target {
             #[inline]
             fn overflow_add(self, other: $target) -> Self {
                 let (res, overflow) = self.overflowing_add(other);
@@ -47,21 +47,21 @@ macro_rules! impl_from {
         }
     };
 }
-impl_from!(u8);
-impl_from!(u16);
-impl_from!(u32);
-impl_from!(u64);
-impl_from!(u128);
-impl_from!(i8);
-impl_from!(i16);
-impl_from!(i32);
-impl_from!(i64);
-impl_from!(i128);
-impl_from!(usize);
-impl_from!(isize);
+impl_overflow_arithmetic!(u8);
+impl_overflow_arithmetic!(u16);
+impl_overflow_arithmetic!(u32);
+impl_overflow_arithmetic!(u64);
+impl_overflow_arithmetic!(u128);
+impl_overflow_arithmetic!(i8);
+impl_overflow_arithmetic!(i16);
+impl_overflow_arithmetic!(i32);
+impl_overflow_arithmetic!(i64);
+impl_overflow_arithmetic!(i128);
+impl_overflow_arithmetic!(usize);
+impl_overflow_arithmetic!(isize);
 
 /// A type cast trait used to do the integer arithmetic.
-pub trait Uint<T> {
+pub trait OverflowArithmetic<T> {
     /// Overflow add.
     fn overflow_add(self, other: Self) -> Self;
 

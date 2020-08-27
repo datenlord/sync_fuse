@@ -40,7 +40,7 @@ mod request;
 mod session;
 mod utils;
 pub use conversion::Cast;
-pub use utils::Uint;
+pub use utils::OverflowArithmetic;
 
 /// File types
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

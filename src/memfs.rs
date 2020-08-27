@@ -1,7 +1,7 @@
 use crate::fuse::{
-    Cast, FileAttr, FileType, Filesystem, FsReleaseParam, FsSetattrParam, FsWriteParam, ReplyAttr,
-    ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, Uint,
-    FUSE_ROOT_ID,
+    Cast, FileAttr, FileType, Filesystem, FsReleaseParam, FsSetattrParam, FsWriteParam,
+    OverflowArithmetic, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen,
+    ReplyWrite, Request, FUSE_ROOT_ID,
 };
 use libc::{EEXIST, EINVAL, ENODATA, ENOENT, ENOTEMPTY};
 use log::{debug, error}; // info, warn
