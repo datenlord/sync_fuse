@@ -1,3 +1,5 @@
+use std::any::type_name;
+
 macro_rules! impl_overflow_arithmetic {
     ($target: ty) => {
         impl OverflowArithmetic<$target> for $target {
@@ -6,8 +8,11 @@ macro_rules! impl_overflow_arithmetic {
                 let (res, overflow) = self.overflowing_add(other);
                 debug_assert!(
                     !overflow,
-                    "number = {} add number = {} overflowing",
-                    self, other
+                    "number = {}({}) add number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
                 );
                 res
             }
@@ -17,8 +22,11 @@ macro_rules! impl_overflow_arithmetic {
                 let (res, overflow) = self.overflowing_sub(other);
                 debug_assert!(
                     !overflow,
-                    "number = {} substract number = {} overflowing",
-                    self, other
+                    "number = {}({}) substract number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
                 );
                 res
             }
@@ -28,8 +36,11 @@ macro_rules! impl_overflow_arithmetic {
                 let (res, overflow) = self.overflowing_mul(other);
                 debug_assert!(
                     !overflow,
-                    "number = {} multiply number = {} overflowing",
-                    self, other
+                    "number = {}({}) multiply number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
                 );
                 res
             }
@@ -39,8 +50,11 @@ macro_rules! impl_overflow_arithmetic {
                 let (res, overflow) = self.overflowing_div(other);
                 debug_assert!(
                     !overflow,
-                    "number = {} divide number = {} overflowing",
-                    self, other
+                    "number = {}({}) divide number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
                 );
                 res
             }
