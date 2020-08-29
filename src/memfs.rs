@@ -810,10 +810,10 @@ impl INode {
         let ino = attr.ino;
         let file_data = file_node.data.get_mut();
 
-        let size_after_write = offset.cast::<usize>() + data.len();
+        let size_after_write = offset.cast::<usize>().overflow_add(data.len());
         if file_data.capacity() < size_after_write {
             let before_cap = file_data.capacity();
-            let extra_space_size = size_after_write - file_data.capacity();
+            let extra_space_size = size_after_write.overflow_sub(file_data.capacity());
             file_data.reserve(extra_space_size);
             // TODO: handle OOM when reserving
             // let result = file_data.try_reserve(extra_space_size);
@@ -839,7 +839,7 @@ impl INode {
                 );
             }
             cmp::Ordering::Less => {
-                let zero_padding_size = offset.cast::<usize>() - file_data.len();
+                let zero_padding_size = offset.cast::<usize>().overflow_sub(file_data.len());
                 let mut zero_padding_vec = vec![0_u8; zero_padding_size];
                 file_data.append(&mut zero_padding_vec);
             }
@@ -1275,8 +1275,11 @@ impl Filesystem for MemoryFilesystem {
 
         let read_helper = |content: &Vec<u8>| {
             if offset.cast::<usize>() < content.len() {
-                let read_data = if (offset.cast::<usize>() + size.cast::<usize>()) < content.len() {
-                    &content[offset.cast()..(offset.cast::<usize>() + size.cast::<usize>())]
+                let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>()))
+                    < content.len()
+                {
+                    &content
+                        [offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>()))]
                 } else {
                     &content[offset.cast()..]
                 };
@@ -1323,17 +1326,17 @@ impl Filesystem for MemoryFilesystem {
                 let child_ino = child_entry.ino;
                 reply.add(
                     child_ino,
-                    offset + i.cast::<i64>() + 1, // i + 1 means the index of the next entry
+                    (offset.overflow_add(i.cast::<i64>())).overflow_add(1), // i + 1 means the index of the next entry
                     util::convert_node_type(child_entry.entry_type),
                     child_name,
                 );
-                num_child_entries += 1;
+                num_child_entries = num_child_entries.overflow_add(1);
                 debug!(
                     "readdir() found one child name={:?} ino={} offset={} entry={:?}
                         under the directory of ino={}",
                     child_name,
                     child_ino,
-                    offset + i.cast::<i64>() + 1,
+                    (offset.overflow_add(i.cast::<i64>())).overflow_add(1),
                     child_entry,
                     ino,
                 );
