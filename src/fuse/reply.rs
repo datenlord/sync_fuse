@@ -642,14 +642,14 @@ impl ReplyDirectory {
             // The following serialization won't produce error
             // because the size is checked before
             // TODO: Change the Param to use fuse_dirent directly
-            bincode::serialize_into(&mut self.data, &ino).unwrap();
-            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap();
-            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap();
+            bincode::serialize_into(&mut self.data, &ino)..unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap_or_else(|_| panic!());
             bincode::serialize_into(
                 &mut self.data,
                 &(mode_from_kind_and_perm(kind, 0).overflow_shr(12)),
             )
-            .unwrap();
+            .unwrap_or_else(|_| panic!());
             let p1 = p.add(mem::size_of::<fuse_dirent>());
             ptr::copy_nonoverlapping(name_bytes.as_ptr(), p1, name_bytes.len());
             let p2 = p1.add(name_bytes.len());
