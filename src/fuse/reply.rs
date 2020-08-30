@@ -6,6 +6,7 @@
 //! data without cloning the data. A reply *must always* be used (by calling either ok() or
 //! error() exactly once).
 
+use super::OverflowArithmetic;
 use libc::{EIO, S_IFBLK, S_IFCHR, S_IFDIR, S_IFIFO, S_IFLNK, S_IFREG, S_IFSOCK};
 use log::warn;
 use std::convert::AsRef;
@@ -168,10 +169,10 @@ impl<T> ReplyRaw<T> {
     /// only once (the `ok` and `error` methods ensure this by consuming `self`)
     fn send(&mut self, err: c_int, bytes: &[&[u8]]) {
         assert!(self.sender.is_some());
-        let len = bytes.iter().fold(0, |l, b| l + b.len());
+        let len = bytes.iter().fold(0, |l, b| l.overflow_add(b.len()));
         let header = fuse_out_header {
-            len: (mem::size_of::<fuse_out_header>() + len).cast(),
-            error: -err,
+            len: (mem::size_of::<fuse_out_header>().overflow_add(len)).cast(),
+            error: err.overflow_mul(-1),
             unique: self.unique,
         };
         as_bytes(&header, |headerbytes| {
@@ -628,10 +629,11 @@ impl ReplyDirectory {
     /// value to request the next entries in further readdir calls
     pub fn add<T: AsRef<OsStr>>(&mut self, ino: u64, offset: i64, kind: FileType, name: T) -> bool {
         let name_bytes = name.as_ref().as_bytes();
-        let entlen = mem::size_of::<fuse_dirent>() + name_bytes.len();
-        let entsize = (entlen + mem::size_of::<u64>() - 1) & !(mem::size_of::<u64>() - 1); // 64bit align
-        let padlen = entsize - entlen;
-        if self.data.len() + entsize > self.data.capacity() {
+        let entlen = mem::size_of::<fuse_dirent>().overflow_add(name_bytes.len());
+        let entsize = (entlen.overflow_add(mem::size_of::<u64>()).overflow_sub(1))
+            & !(mem::size_of::<u64>().overflow_sub(1)); // 64bit align
+        let padlen = entsize.overflow_sub(entlen);
+        if self.data.len().overflow_add(entsize) > self.data.capacity() {
             return true;
         }
         #[allow(unsafe_code)]
@@ -643,13 +645,20 @@ impl ReplyDirectory {
             bincode::serialize_into(&mut self.data, &ino).unwrap();
             bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap();
             bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap();
-            bincode::serialize_into(&mut self.data, &(mode_from_kind_and_perm(kind, 0) >> 12))
-                .unwrap();
+            bincode::serialize_into(
+                &mut self.data,
+                &(mode_from_kind_and_perm(kind, 0).overflow_shr(12)),
+            )
+            .unwrap();
             let p1 = p.add(mem::size_of::<fuse_dirent>());
             ptr::copy_nonoverlapping(name_bytes.as_ptr(), p1, name_bytes.len());
             let p2 = p1.add(name_bytes.len());
             ptr::write_bytes(p2, 0_u8, padlen);
-            let newlen = self.data.len() + padlen + name_bytes.len();
+            let newlen = self
+                .data
+                .len()
+                .overflow_add(padlen)
+                .overflow_add(name_bytes.len());
             self.data.set_len(newlen);
         }
         false

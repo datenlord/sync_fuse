@@ -1,3 +1,4 @@
+use super::Cast;
 use std::any::type_name;
 
 macro_rules! impl_overflow_arithmetic {
@@ -58,6 +59,20 @@ macro_rules! impl_overflow_arithmetic {
                 );
                 res
             }
+
+            #[inline]
+            fn overflow_shr(self, other: $target) -> Self {
+                let (res, overflow) = self.overflowing_shr(other.cast());
+                debug_assert!(
+                    !overflow,
+                    "number = {}({}) right shift number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
+                );
+                res
+            }
         }
     };
 }
@@ -87,4 +102,7 @@ pub trait OverflowArithmetic<T> {
 
     /// Overflow div.
     fn overflow_div(self, other: Self) -> Self;
+
+    /// Overflow shr.
+    fn overflow_shr(self, other: Self) -> Self;
 }
