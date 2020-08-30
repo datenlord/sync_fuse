@@ -60,10 +60,21 @@ pub fn options_validator(option: String) -> Result<(), String> {
 }
 
 pub fn get_mount_options_map() -> HashMap<String, FuseMountOption> {
-    get_mount_options()
-        .into_iter()
-        .map(|op| (op.name.split('=').collect::<Vec<_>>()[0].to_string(), op))
-        .collect::<HashMap<_, _>>()
+    let mut map: HashMap<String, FuseMountOption> = HashMap::new();
+    for op in get_mount_options() {
+        let key = op
+            .name
+            .clone()
+            .split('=')
+            .collect::<Vec<_>>()
+            .get(0)
+            .unwrap_or_else(|| panic!("Indexing is out of bounds"))
+            .to_string();
+        let val = op;
+
+        map.insert(key, val);
+    }
+    map
 }
 
 #[cfg(target_os = "linux")]
@@ -347,7 +358,12 @@ mod param {
 
             let mount_options_map = super::get_mount_options_map();
             options.iter().for_each(|op| {
-                let key = op.split('=').collect::<Vec<_>>()[0].to_string();
+                let key = op
+                    .split('=')
+                    .collect::<Vec<_>>()
+                    .get(0)
+                    .unwrap_or_else(|| panic!("Indexing is out of bounds"))
+                    .to_string();
                 let option = mount_options_map.get(&key).unwrap(); // Safe to use unwrap here, because key always exists
                 (option.parser)(&mut args, option, op)
             });
@@ -368,8 +384,10 @@ mod param {
     }
 
     pub fn copy_slice<T: Copy>(from: &[T], to: &mut [T]) {
-        debug_assert!(to.len() >= from.len());
-        to[..from.len()].copy_from_slice(from);
+        let to_len = to.len();
+        to.get_mut(..from.len())
+            .unwrap_or_else(|| panic!("Indexing is out of bounds when copying slices, from slice length={}, to slice length={}", from.len(), to_len))
+            .copy_from_slice(from);
     }
 
     pub fn parse_mount_flag(options: &[&str]) -> i32 {
