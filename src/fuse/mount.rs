@@ -393,15 +393,10 @@ mod param {
     }
 
     pub fn copy_slice<T: Copy>(from: &[T], to: &mut [T]) {
-<<<<<<< HEAD
         let to_len = to.len();
         to.get_mut(..from.len())
             .unwrap_or_else(|| panic!("Indexing is out of bounds when copying slices, from slice length={}, to slice length={}", from.len(), to_len))
             .copy_from_slice(from);
-=======
-        debug_assert!(to.len() >= from.len());
-        to.get_mut(..from.len()).unwrap_or_else(|| panic!()).copy_from_slice(from);
->>>>>>> Fix some lint issues
     }
 
     pub fn parse_mount_flag(options: &[&str]) -> i32 {
