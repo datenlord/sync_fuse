@@ -46,7 +46,7 @@ pub trait Reply {
     fn new<S: ReplySender>(unique: u64, sender: S) -> Self;
 }
 
-/// Serialize an arbitrary type to bytes (memory copy, useful for fuse_*_out types)
+/// Serialize an arbitrary type to bytes (memory copy, useful for `fuse_*_out` types)
 fn as_bytes<T, U, F: FnOnce(&[&[u8]]) -> U>(data: &T, f: F) -> U {
     let length = mem::size_of::<T>();
     match length {
@@ -118,7 +118,7 @@ fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     }
 }
 
-/// Returns a fuse_attr from FileAttr
+/// Returns a `fuse_attr` from `FileAttr`
 #[cfg(not(target_os = "macos"))]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
@@ -635,7 +635,7 @@ pub struct ReplyDirectory {
 }
 
 impl ReplyDirectory {
-    /// Creates a new ReplyDirectory with a specified buffer size.
+    /// Creates a new `ReplyDirectory` with a specified buffer size.
     pub fn new<S: ReplySender>(unique: u64, sender: S, size: usize) -> Self {
         Self {
             reply: Reply::new(unique, sender),
