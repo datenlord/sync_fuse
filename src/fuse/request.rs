@@ -11,8 +11,15 @@ use std::convert::TryFrom;
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::abi::consts::*;
-use super::abi::*;
+use super::abi::consts::{
+    FATTR_ATIME, FATTR_BKUPTIME, FATTR_CHGTIME, FATTR_CRTIME, FATTR_FH, FATTR_FLAGS, FATTR_GID,
+    FATTR_MODE, FATTR_MTIME, FATTR_SIZE, FATTR_UID, FUSE_ASYNC_READ, FUSE_CASE_INSENSITIVE,
+    FUSE_RELEASE_FLUSH, FUSE_VOL_RENAME, FUSE_XTIMES,
+};
+use super::abi::{
+    fuse_init_out, fuse_setattr_in, fuse_setxattr_in, FUSE_KERNEL_MINOR_VERSION,
+    FUSE_KERNEL_VERSION,
+};
 use super::channel::FuseChannelSender;
 use super::ll_request;
 use super::reply::{Reply, ReplyDirectory, ReplyEmpty, ReplyRaw};
@@ -64,6 +71,7 @@ impl<'a> Request<'a> {
     /// Dispatch request to the given filesystem.
     /// This calls the appropriate filesystem operation method for the
     /// request and sends back the returned reply to the kernel
+    #[allow(clippy::too_many_lines)]
     pub fn dispatch<FS: Filesystem>(&self, se: &mut Session<FS>) {
         #[cfg(target_os = "macos")]
         #[inline]

@@ -32,7 +32,7 @@ const MY_GENERATION: u64 = 1;
 // const FUSE_ROOT_ID: u64 = 1; // defined in include/fuse_kernel.h
 
 mod util {
-    use super::*;
+    use super::{AsRawFd, Cast, Dir, Duration, FileAttr, FileStat, FileType, Mode, OFlag, OsStr, Path, RawFd, Result, SFlag, SystemTime, Type, UNIX_EPOCH, debug, stat};
 
     pub fn parse_oflag(flags: u32) -> OFlag {
         debug_assert!(
@@ -101,7 +101,7 @@ mod util {
         match file_type {
             Type::Directory => FileType::Directory,
             Type::File => FileType::RegularFile,
-            _ => panic!(
+            Type::Fifo | Type::CharacterDevice | Type::BlockDevice | Type::Symlink | Type::Socket => panic!(
                 "helper_convert_node_type() found unsupported file type: {:?}",
                 file_type,
             ),
@@ -517,7 +517,7 @@ impl INode {
                 DirEntry {
                     ino: e.ino(),
                     name,
-                    entry_type: e.file_type().unwrap(), // safe to use unwrap() here
+                    entry_type: e.file_type().unwrap_or_else(|| panic!()), // safe to use unwrap() here
                 },
             );
         });
@@ -744,7 +744,7 @@ impl INode {
                     )
                 });
             }
-            _ => panic!(
+            Type::Fifo | Type::CharacterDevice | Type::BlockDevice | Type::Symlink | Type::Socket => panic!(
                 "unlink_entry() found unsupported entry type: {:?}",
                 child_entry.entry_type
             ),
@@ -858,7 +858,7 @@ impl INode {
         let mut written_size = data.len();
         if true {
             // TODO: async write to disk
-            written_size = uio::pwrite(fd, data, offset).expect("write() failed to write to disk");
+            written_size = uio::pwrite(fd, data, offset).unwrap_or_else(|_| panic!("write() failed to write to disk"));
             debug_assert_eq!(data.len(), written_size);
         }
         // update the attribute of the written file
@@ -949,7 +949,7 @@ impl MemoryFilesystem {
                 );
                 new_inode = parent_inode.create_child_file(node_name, o_flags, m_flags);
             }
-            _ => panic!(
+            FileType::NamedPipe | FileType::CharDevice | FileType::BlockDevice | FileType::Symlink | FileType::Socket => panic!(
                 "helper_create_node() found unsupported file type: {:?}",
                 node_kind
             ),
@@ -1003,7 +1003,7 @@ impl MemoryFilesystem {
 
         if deferred_deletion {
             // deferred deletion
-            let inode = self.cache.get(&ino).unwrap(); // TODO: support thread-safe
+            let inode = self.cache.get(&ino).unwrap_or_else(|| panic!()); // TODO: support thread-safe
             let insert_result = self.trash.insert(ino);
             debug_assert!(insert_result); // check thread-safe in case of duplicated deferred deletion requests
             debug!(
@@ -1017,7 +1017,7 @@ impl MemoryFilesystem {
             );
         } else {
             // complete deletion
-            let inode = self.cache.remove(&ino).unwrap(); // TODO: support thread-safe
+            let inode = self.cache.remove(&ino).unwrap_or_else(|| panic!()); // TODO: support thread-safe
             debug!(
                 "helper_may_deferred_delete_node() successfully removed the node name={:?} of ino={}
                     under parent ino={}, open count is: {}, lookup count is : {}",
@@ -1275,6 +1275,7 @@ impl Filesystem for MemoryFilesystem {
 
         let read_helper = |content: &Vec<u8>| {
             if offset.cast::<usize>() < content.len() {
+<<<<<<< HEAD
                 let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>())) < content.len() {
                     content
                         .get(offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>())))
@@ -1294,6 +1295,15 @@ impl Filesystem for MemoryFilesystem {
                             content.len()
                         )
                     })
+=======
+                let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>()))
+                    < content.len()
+                {
+                    content
+                        .get(offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>()))).unwrap_or_else(|| panic!())
+                } else {
+                    content.get(offset.cast()..).unwrap_or_else(|| panic!())
+>>>>>>> Fix some lint issues
                 };
                 debug!(
                     "read() successfully from the file of ino={}, the read size is: {:?}",
@@ -1445,7 +1455,7 @@ impl Filesystem for MemoryFilesystem {
                     let oflags = OFlag::O_RDONLY;
                     child_inode = parent_inode.open_child_file(&child_name, oflags);
                 }
-                _ => panic!("lookup() found unsupported file type: {:?}", child_type),
+                FileType::NamedPipe | FileType::CharDevice | FileType::BlockDevice | FileType::Symlink | FileType::Socket => panic!("lookup() found unsupported file type: {:?}", child_type),
             };
 
             let child_ino = child_inode.get_ino();
@@ -1659,8 +1669,13 @@ impl Filesystem for MemoryFilesystem {
             param.data.len(),
             param.ino,
             param.offset,
+<<<<<<< HEAD
             if let Some(data) = param.data.get(0..100) {
                 data
+=======
+            if param.data.len() > 100 {
+                &param.data.get(0..100).unwrap_or_else(|| panic!())
+>>>>>>> Fix some lint issues
             } else {
                 param.data
             }
@@ -1746,11 +1761,11 @@ impl Filesystem for MemoryFilesystem {
         // all checks passed, ready to rename
         {
             // TODO: support thread-safe
-            let parent_inode = self.cache.get(&parent).unwrap();
-            let new_parent_inode = self.cache.get(&new_parent).unwrap();
+            let parent_inode = self.cache.get(&parent).unwrap_or_else(|| panic!());
+            let new_parent_inode = self.cache.get(&new_parent).unwrap_or_else(|| panic!());
 
-            let old_entry = parent_inode.get_entry(&old_name).unwrap();
-            let child_inode = self.cache.get(&old_entry.ino).unwrap();
+            let old_entry = parent_inode.get_entry(&old_name).unwrap_or_else(|| panic!());
+            let child_inode = self.cache.get(&old_entry.ino).unwrap_or_else(|| panic!());
             child_inode.set_parent_ino(new_parent_inode.get_ino());
             child_inode.set_name(os_newname.clone());
 

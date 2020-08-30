@@ -11,9 +11,9 @@ macro_rules! impl_overflow_arithmetic {
                     !overflow,
                     "number = {}({}) add number = {}({}) overflowing",
                     self,
-                    type_name::<$target>(),
+                    type_name::<Self>(),
                     other,
-                    type_name::<$target>()
+                    type_name::<Self>()
                 );
                 res
             }
@@ -25,9 +25,9 @@ macro_rules! impl_overflow_arithmetic {
                     !overflow,
                     "number = {}({}) substract number = {}({}) overflowing",
                     self,
-                    type_name::<$target>(),
+                    type_name::<Self>(),
                     other,
-                    type_name::<$target>()
+                    type_name::<Self>()
                 );
                 res
             }
@@ -39,9 +39,9 @@ macro_rules! impl_overflow_arithmetic {
                     !overflow,
                     "number = {}({}) multiply number = {}({}) overflowing",
                     self,
-                    type_name::<$target>(),
+                    type_name::<Self>(),
                     other,
-                    type_name::<$target>()
+                    type_name::<Self>()
                 );
                 res
             }
@@ -53,9 +53,9 @@ macro_rules! impl_overflow_arithmetic {
                     !overflow,
                     "number = {}({}) divide number = {}({}) overflowing",
                     self,
-                    type_name::<$target>(),
+                    type_name::<Self>(),
                     other,
-                    type_name::<$target>()
+                    type_name::<Self>()
                 );
                 res
             }
@@ -67,9 +67,9 @@ macro_rules! impl_overflow_arithmetic {
                     !overflow,
                     "number = {}({}) right shift number = {}({}) overflowing",
                     self,
-                    type_name::<$target>(),
+                    type_name::<Self>(),
                     other,
-                    type_name::<$target>()
+                    type_name::<Self>()
                 );
                 res
             }
