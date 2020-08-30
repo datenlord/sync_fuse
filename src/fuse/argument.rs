@@ -32,11 +32,10 @@ impl<'a> FuseArgumentIterator<'a> {
 
     /// Fetch a slice of bytes of the given size. Returns `None` if there's not enough data left.
     pub fn fetch_bytes(&mut self, amt: usize) -> Option<&'a [u8]> {
-        if amt > self.data.len() {
-            return None;
-        }
-        let bytes = &self.data[..amt];
-        self.data = &self.data[amt..];
+        let bytes = self.data.get(..amt)?;
+        if let Some(data) = self.data.get(amt..) {
+            self.data = data;
+        };
         Some(bytes)
     }
 
