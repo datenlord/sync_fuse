@@ -73,6 +73,20 @@ macro_rules! impl_overflow_arithmetic {
                 );
                 res
             }
+
+            #[inline]
+            fn overflow_shr(self, other: $target) -> Self {
+                let (res, overflow) = self.overflowing_shr(other.cast());
+                debug_assert!(
+                    !overflow,
+                    "number = {}({}) right shift number = {}({}) overflowing",
+                    self,
+                    type_name::<$target>(),
+                    other,
+                    type_name::<$target>()
+                );
+                res
+            }
         }
     };
 }
