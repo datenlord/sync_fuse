@@ -32,7 +32,10 @@ const MY_GENERATION: u64 = 1;
 // const FUSE_ROOT_ID: u64 = 1; // defined in include/fuse_kernel.h
 
 mod util {
-    use super::{AsRawFd, Cast, Dir, Duration, FileAttr, FileStat, FileType, Mode, OFlag, OsStr, Path, RawFd, Result, SFlag, SystemTime, Type, UNIX_EPOCH, debug, stat};
+    use super::{
+        debug, stat, AsRawFd, Cast, Dir, Duration, FileAttr, FileStat, FileType, Mode, OFlag,
+        OsStr, Path, RawFd, Result, SFlag, SystemTime, Type, UNIX_EPOCH,
+    };
 
     pub fn parse_oflag(flags: u32) -> OFlag {
         debug_assert!(
@@ -101,7 +104,11 @@ mod util {
         match file_type {
             Type::Directory => FileType::Directory,
             Type::File => FileType::RegularFile,
-            Type::Fifo | Type::CharacterDevice | Type::BlockDevice | Type::Symlink | Type::Socket => panic!(
+            Type::Fifo
+            | Type::CharacterDevice
+            | Type::BlockDevice
+            | Type::Symlink
+            | Type::Socket => panic!(
                 "helper_convert_node_type() found unsupported file type: {:?}",
                 file_type,
             ),
@@ -744,7 +751,11 @@ impl INode {
                     )
                 });
             }
-            Type::Fifo | Type::CharacterDevice | Type::BlockDevice | Type::Symlink | Type::Socket => panic!(
+            Type::Fifo
+            | Type::CharacterDevice
+            | Type::BlockDevice
+            | Type::Symlink
+            | Type::Socket => panic!(
                 "unlink_entry() found unsupported entry type: {:?}",
                 child_entry.entry_type
             ),
@@ -858,7 +869,8 @@ impl INode {
         let mut written_size = data.len();
         if true {
             // TODO: async write to disk
-            written_size = uio::pwrite(fd, data, offset).unwrap_or_else(|_| panic!("write() failed to write to disk"));
+            written_size = uio::pwrite(fd, data, offset)
+                .unwrap_or_else(|_| panic!("write() failed to write to disk"));
             debug_assert_eq!(data.len(), written_size);
         }
         // update the attribute of the written file
@@ -949,7 +961,11 @@ impl MemoryFilesystem {
                 );
                 new_inode = parent_inode.create_child_file(node_name, o_flags, m_flags);
             }
-            FileType::NamedPipe | FileType::CharDevice | FileType::BlockDevice | FileType::Symlink | FileType::Socket => panic!(
+            FileType::NamedPipe
+            | FileType::CharDevice
+            | FileType::BlockDevice
+            | FileType::Symlink
+            | FileType::Socket => panic!(
                 "helper_create_node() found unsupported file type: {:?}",
                 node_kind
             ),
@@ -1275,9 +1291,14 @@ impl Filesystem for MemoryFilesystem {
 
         let read_helper = |content: &Vec<u8>| {
             if offset.cast::<usize>() < content.len() {
-                let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>())) < content.len() {
+                let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>()))
+                    < content.len()
+                {
                     content
-                        .get(offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>())))
+                        .get(
+                            offset.cast()
+                                ..(offset.cast::<usize>().overflow_add(size.cast::<usize>())),
+                        )
                         .unwrap_or_else(|| {
                             panic!(
                                 "Indexing is out of bounds, offset={}, size={}, content length={}",
@@ -1445,7 +1466,13 @@ impl Filesystem for MemoryFilesystem {
                     let oflags = OFlag::O_RDONLY;
                     child_inode = parent_inode.open_child_file(&child_name, oflags);
                 }
-                FileType::NamedPipe | FileType::CharDevice | FileType::BlockDevice | FileType::Symlink | FileType::Socket => panic!("lookup() found unsupported file type: {:?}", child_type),
+                FileType::NamedPipe
+                | FileType::CharDevice
+                | FileType::BlockDevice
+                | FileType::Symlink
+                | FileType::Socket => {
+                    panic!("lookup() found unsupported file type: {:?}", child_type)
+                }
             };
 
             let child_ino = child_inode.get_ino();
@@ -1749,7 +1776,9 @@ impl Filesystem for MemoryFilesystem {
             let parent_inode = self.cache.get(&parent).unwrap_or_else(|| panic!());
             let new_parent_inode = self.cache.get(&new_parent).unwrap_or_else(|| panic!());
 
-            let old_entry = parent_inode.get_entry(&old_name).unwrap_or_else(|| panic!());
+            let old_entry = parent_inode
+                .get_entry(&old_name)
+                .unwrap_or_else(|| panic!());
             let child_inode = self.cache.get(&old_entry.ino).unwrap_or_else(|| panic!());
             child_inode.set_parent_ino(new_parent_inode.get_ino());
             child_inode.set_name(os_newname.clone());
