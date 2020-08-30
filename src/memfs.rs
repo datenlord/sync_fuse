@@ -1923,30 +1923,30 @@ mod test {
         const FILE_CONTENT: &str = "0123456789ABCDEF";
         let mount_dir = Path::new(DEFAULT_MOUNT_DIR);
         if !mount_dir.exists() {
-            fs::create_dir(&mount_dir).unwrap();
+            fs::create_dir(&mount_dir).unwrap_or_else(|_| panic!());
         }
 
         let from_dir = Path::new(&mount_dir).join("from_dir");
         if from_dir.exists() {
-            fs::remove_dir_all(&from_dir).unwrap();
+            fs::remove_dir_all(&from_dir).unwrap_or_else(|_| panic!());
         }
-        fs::create_dir(&from_dir).unwrap();
+        fs::create_dir(&from_dir).unwrap_or_else(|_| panic!());
         let to_dir = Path::new(&mount_dir).join("to_dir");
         if to_dir.exists() {
-            fs::remove_dir_all(&to_dir).unwrap();
+            fs::remove_dir_all(&to_dir).unwrap_or_else(|_| panic!());
         }
-        fs::create_dir(&to_dir).unwrap();
+        fs::create_dir(&to_dir).unwrap_or_else(|_| panic!());
         let old_name = "old.txt";
         let old_file = from_dir.join(old_name);
-        fs::write(&old_file, FILE_CONTENT).unwrap();
+        fs::write(&old_file, FILE_CONTENT).unwrap_or_else(|_| panic!());
         let new_name = "new.txt";
         let new_file = to_dir.join(new_name);
 
         let oflags = OFlag::O_RDONLY | OFlag::O_DIRECTORY;
-        let old_dir_fd = Dir::open(&from_dir, oflags, Mode::empty()).unwrap();
-        let new_dir_fd = Dir::open(&to_dir, oflags, Mode::empty()).unwrap();
-        let old_cstr = CString::new(old_name).unwrap();
-        let new_cstr = CString::new(new_name).unwrap();
+        let old_dir_fd = Dir::open(&from_dir, oflags, Mode::empty()).unwrap_or_else(|_| panic!());
+        let new_dir_fd = Dir::open(&to_dir, oflags, Mode::empty()).unwrap_or_else(|_| panic!());
+        let old_cstr = CString::new(old_name).unwrap_or_else(|_| panic!());
+        let new_cstr = CString::new(new_name).unwrap_or_else(|_| panic!());
         #[allow(unsafe_code)]
         let res = unsafe {
             libc::renameat(
@@ -1958,16 +1958,16 @@ mod test {
         };
         // fs::rename(&old_file, &new_file).unwrap();
         assert_eq!(res, 0);
-        let bytes = fs::read(&new_file).unwrap();
-        let content = String::from_utf8(bytes).unwrap();
+        let bytes = fs::read(&new_file).unwrap_or_else(|_| panic!());
+        let content = String::from_utf8(bytes).unwrap_or_else(|_| panic!());
         assert_eq!(content, FILE_CONTENT);
         assert!(!old_file.exists());
         assert!(new_file.exists());
-        fs::remove_dir_all(&from_dir).unwrap();
+        fs::remove_dir_all(&from_dir).unwrap_or_else(|_| panic!());
         assert!(!from_dir.exists());
-        fs::remove_dir_all(&to_dir).unwrap();
+        fs::remove_dir_all(&to_dir).unwrap_or_else(|_| panic!());
         assert!(!to_dir.exists());
-        fs::remove_dir_all(&mount_dir).unwrap();
+        fs::remove_dir_all(&mount_dir).unwrap_or_else(|_| panic!());
         assert!(!mount_dir.exists());
     }
 }

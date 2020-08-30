@@ -81,7 +81,7 @@ mod tests {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
         #[allow(unsafe_code)]
         unsafe {
-            it.fetch_str().unwrap()
+            it.fetch_str().unwrap_or_else(|| panic!());
         };
         let arg = it.fetch_all();
         assert_eq!(arg, [0x62, 0x61, 0x72, 0x00, 0x62, 0x61]);
@@ -90,10 +90,10 @@ mod tests {
     #[test]
     fn bytes_data() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
-        let arg = it.fetch_bytes(5).unwrap();
+        let arg = it.fetch_bytes(5).unwrap_or_else(|| panic!());
         assert_eq!(arg, [0x66, 0x6f, 0x6f, 0x00, 0x62]);
-        let arg = it.fetch_bytes(2).unwrap();
-        assert_eq!(arg, [0x61, 0x72]);
+        let arg2 = it.fetch_bytes(2).unwrap_or_else(|| panic!());
+        assert_eq!(arg2, [0x61, 0x72]);
         assert_eq!(it.len(), 3);
     }
 
@@ -101,15 +101,15 @@ mod tests {
     fn generic_argument() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
         #[allow(unsafe_code)]
-        let arg: &TestArgument = unsafe { it.fetch().unwrap() };
+        let arg: &TestArgument = unsafe { it.fetch().unwrap_or_else(|| panic!()) };
         assert_eq!(arg.p1, 0x66);
         assert_eq!(arg.p2, 0x6f);
         assert_eq!(arg.p3, 0x006f);
         #[allow(unsafe_code)]
-        let arg: &TestArgument = unsafe { it.fetch().unwrap() };
-        assert_eq!(arg.p1, 0x62);
-        assert_eq!(arg.p2, 0x61);
-        assert_eq!(arg.p3, 0x0072);
+        let arg2: &TestArgument = unsafe { it.fetch().unwrap_or_else(|| panic!()) };
+        assert_eq!(arg2.p1, 0x62);
+        assert_eq!(arg2.p2, 0x61);
+        assert_eq!(arg2.p3, 0x0072);
         assert_eq!(it.len(), 2);
     }
 
@@ -117,11 +117,11 @@ mod tests {
     fn string_argument() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
         #[allow(unsafe_code)]
-        let arg = unsafe { it.fetch_str().unwrap() };
+        let arg = unsafe { it.fetch_str().unwrap_or_else(|| panic!()) };
         assert_eq!(arg, "foo");
         #[allow(unsafe_code)]
-        let arg = unsafe { it.fetch_str().unwrap() };
-        assert_eq!(arg, "bar");
+        let arg2 = unsafe { it.fetch_str().unwrap_or_else(|| panic!()) };
+        assert_eq!(arg2, "bar");
         assert_eq!(it.len(), 2);
     }
 
@@ -129,21 +129,21 @@ mod tests {
     fn mixed_arguments() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
         #[allow(unsafe_code)]
-        let arg: &TestArgument = unsafe { it.fetch().unwrap() };
+        let arg: &TestArgument = unsafe { it.fetch().unwrap_or_else(|| panic!()) };
         assert_eq!(arg.p1, 0x66);
         assert_eq!(arg.p2, 0x6f);
         assert_eq!(arg.p3, 0x006f);
         #[allow(unsafe_code)]
-        let arg = unsafe { it.fetch_str().unwrap() };
-        assert_eq!(arg, "bar");
-        let arg = it.fetch_all();
-        assert_eq!(arg, [0x62, 0x61]);
+        let arg2 = unsafe { it.fetch_str().unwrap_or_else(|| panic!()) };
+        assert_eq!(arg2, "bar");
+        let arg3 = it.fetch_all();
+        assert_eq!(arg3, [0x62, 0x61]);
     }
 
     #[test]
     fn out_of_data() {
         let mut it = FuseArgumentIterator::new(&TEST_DATA);
-        let _arg = it.fetch_bytes(8).unwrap();
+        let _arg = it.fetch_bytes(8).unwrap_or_else(|| panic!());
         #[allow(unsafe_code)]
         let fuse_arg: Option<&TestArgument> = unsafe { it.fetch() };
         assert!(fuse_arg.is_none());
