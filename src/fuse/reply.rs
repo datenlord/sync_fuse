@@ -87,10 +87,14 @@ fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
 #[cfg(target_os = "macos")]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-    let (a_time_secs, a_time_nanos) = time_from_system_time(&attr.atime).unwrap_or_else(|_| panic!());
-    let (m_time_secs, m_time_nanos) = time_from_system_time(&attr.mtime).unwrap_or_else(|_| panic!());
-    let (c_time_secs, c_time_nanos) = time_from_system_time(&attr.ctime).unwrap_or_else(|_| panic!());
-    let (create_time_secs, create_time_nanos) = time_from_system_time(&attr.crtime).unwrap_or_else(|_| panic!());
+    let (a_time_secs, a_time_nanos) =
+        time_from_system_time(&attr.atime).unwrap_or_else(|_| panic!());
+    let (m_time_secs, m_time_nanos) =
+        time_from_system_time(&attr.mtime).unwrap_or_else(|_| panic!());
+    let (c_time_secs, c_time_nanos) =
+        time_from_system_time(&attr.ctime).unwrap_or_else(|_| panic!());
+    let (create_time_secs, create_time_nanos) =
+        time_from_system_time(&attr.crtime).unwrap_or_else(|_| panic!());
 
     fuse_attr {
         ino: attr.ino,
@@ -357,8 +361,10 @@ impl ReplyXTimes {
     #[allow(dead_code)]
     pub fn xtimes(self, bkuptime: SystemTime, crtime: SystemTime) {
         // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-        let (bkuptime_secs, bkuptime_nanos) = time_from_system_time(&bkuptime).unwrap_or_else(|_| panic!());
-        let (crtime_secs, crtime_nanos) = time_from_system_time(&crtime).unwrap_or_else(|_| panic!());
+        let (bkuptime_secs, bkuptime_nanos) =
+            time_from_system_time(&bkuptime).unwrap_or_else(|_| panic!());
+        let (crtime_secs, crtime_nanos) =
+            time_from_system_time(&crtime).unwrap_or_else(|_| panic!());
         self.reply.ok(&fuse_getxtimes_out {
             bkuptime: bkuptime_secs,
             crtime: crtime_secs,
@@ -643,8 +649,10 @@ impl ReplyDirectory {
             // because the size is checked before
             // TODO: Change the Param to use fuse_dirent directly
             bincode::serialize_into(&mut self.data, &ino).unwrap_or_else(|_| panic!());
-            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap_or_else(|_| panic!());
-            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>()))
+                .unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>()))
+                .unwrap_or_else(|_| panic!());
             bincode::serialize_into(
                 &mut self.data,
                 &(mode_from_kind_and_perm(kind, 0).overflow_shr(12)),

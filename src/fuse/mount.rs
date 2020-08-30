@@ -288,7 +288,9 @@ mod param {
         fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
             let name = String::from(option.split('=').last().unwrap_or_else(|| panic!())); //Safe to use unwrap here, becuase option is always valid.
             copy_slice(
-                CString::new(name).unwrap_or_else(|_|panic!("CString::new failed!")).as_bytes(),
+                CString::new(name)
+                    .unwrap_or_else(|_| panic!("CString::new failed!"))
+                    .as_bytes(),
                 &mut args.fsname,
             );
         }
@@ -296,7 +298,13 @@ mod param {
             option == mount_option.name
         }
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
-            let name = String::from(mount_option.name.split('=').next().unwrap_or_else(|| panic!())); //Safe to use unwrap here, becuase name is always valid.
+            let name = String::from(
+                mount_option
+                    .name
+                    .split('=')
+                    .next()
+                    .unwrap_or_else(|| panic!()),
+            ); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
             let option_regex = Regex::new(regex_str.as_str()).unwrap_or_else(|_| panic!()); //Safe to use unwrap here, becuase regex_str is always valid.
             option_regex.is_match(option)
@@ -332,7 +340,8 @@ mod param {
         pub fn parse(options: &[&str]) -> Self {
             let fsname = CString::new("macfuse").unwrap_or_else(|_| panic!("CString::new failed"));
             let fstypename = CString::new("").unwrap_or_else(|_| panic!("CString::new failed"));
-            let volname = CString::new("OSXFUSE Volume 0 (macfuse)").unwrap_or_else(|_| panic!("CString::new failed"));
+            let volname = CString::new("OSXFUSE Volume 0 (macfuse)")
+                .unwrap_or_else(|_| panic!("CString::new failed"));
 
             let mut fsname_slice = [0_u8; MAXPATHLEN];
             copy_slice(fsname.as_bytes(), &mut fsname_slice);
@@ -404,7 +413,10 @@ mod param {
         let mut flag: i32 = 0;
         options.iter().for_each(|&op| {
             let mount_options = get_mount_options();
-            let option = mount_options.iter().find(|x| (x.validator)(x, op)).unwrap_or_else(|| panic!());
+            let option = mount_options
+                .iter()
+                .find(|x| (x.validator)(x, op))
+                .unwrap_or_else(|| panic!());
             if let Some(f) = option.flag {
                 flag |= f;
             }
@@ -667,8 +679,9 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
     use nix::ioctl_read;
     #[allow(unsafe_code)]
-    let result =
-        unsafe { fuse_read_random(fd, conversion::cast_to_mut_ptr(&mut drandom)).unwrap_or_else(|_| panic!()) };
+    let result = unsafe {
+        fuse_read_random(fd, conversion::cast_to_mut_ptr(&mut drandom)).unwrap_or_else(|_| panic!())
+    };
     if result == 0 {
         debug!("successfully read drandom={}", drandom);
     } else {
@@ -680,8 +693,8 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
         return -1;
     }
 
-    let full_path =
-        fs::canonicalize(mount_point).unwrap_or_else(|_| panic!("fail to get full path of mount point"));
+    let full_path = fs::canonicalize(mount_point)
+        .unwrap_or_else(|_| panic!("fail to get full path of mount point"));
     let cstr_path = full_path
         .to_str()
         .unwrap_or_else(|| panic!("full mount path to string failed"));
