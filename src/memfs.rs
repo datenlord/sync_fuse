@@ -25,18 +25,22 @@ use std::result::Result;
 use std::sync::atomic::{self, AtomicI64};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+/// TTL sec
 const MY_TTL_SEC: u64 = 1; // TODO: should be a long value, say 1 hour
+/// Generation
 const MY_GENERATION: u64 = 1;
 // const MY_DIR_MODE: u16 = 0o755;
 // const MY_FILE_MODE: u16 = 0o644;
 // const FUSE_ROOT_ID: u64 = 1; // defined in include/fuse_kernel.h
 
+/// Util module
 mod util {
     use super::{
         debug, stat, AsRawFd, Cast, Dir, Duration, FileAttr, FileStat, FileType, Mode, OFlag,
         OsStr, Path, RawFd, Result, SFlag, SystemTime, Type, UNIX_EPOCH,
     };
 
+    /// Parse oflag
     pub fn parse_oflag(flags: u32) -> OFlag {
         debug_assert!(
             flags < std::i32::MAX.cast(),
@@ -50,6 +54,7 @@ mod util {
         o_flags
     }
 
+    /// Parse mode
     pub fn parse_mode(mode: u32) -> Mode {
         debug_assert!(
             mode < std::u16::MAX.cast(),
@@ -66,6 +71,7 @@ mod util {
         debug!("helper_parse_mode() read file mode: {:?}", f_mode);
         f_mode
     }
+    /// Parse mode bits
     pub fn parse_mode_bits(mode: u32) -> u16 {
         #[cfg(target_os = "linux")]
         let bits = parse_mode(mode).bits().cast();
@@ -75,6 +81,7 @@ mod util {
         bits
     }
 
+    /// Parse sflag
     pub fn parse_sflag(flags: u32) -> SFlag {
         debug_assert!(
             flags < std::u16::MAX.cast(),
@@ -92,6 +99,7 @@ mod util {
         sflag
     }
 
+    /// Convert sflag
     pub fn convert_sflag(sflag: SFlag) -> FileType {
         match sflag {
             SFlag::S_IFDIR => FileType::Directory,
@@ -100,6 +108,7 @@ mod util {
         }
     }
 
+    /// Convert node type
     pub fn convert_node_type(file_type: Type) -> FileType {
         match file_type {
             Type::Directory => FileType::Directory,
@@ -115,6 +124,7 @@ mod util {
         }
     }
 
+    /// Open dir
     pub fn open_dir(path: &Path) -> Result<Dir, nix::Error> {
         let oflags = OFlag::O_RDONLY | OFlag::O_DIRECTORY;
         // let dfd = fcntl::open(path, oflags, Mode::empty())?;
@@ -122,12 +132,14 @@ mod util {
         Ok(dfd)
     }
 
+    /// Open dir at
     pub fn open_dir_at(dir: &Dir, child_name: &OsStr) -> Result<Dir, nix::Error> {
         let oflags = OFlag::O_RDONLY | OFlag::O_DIRECTORY;
         let dir = Dir::openat(dir.as_raw_fd(), child_name, oflags, Mode::empty())?;
         Ok(dir)
     }
 
+    /// Read attr
     pub fn read_attr(fd: RawFd) -> Result<FileAttr, nix::Error> {
         #[cfg(target_os = "macos")]
         fn build_crtime(st: &FileStat) -> Option<SystemTime> {
@@ -137,7 +149,8 @@ mod util {
             ))
         }
         #[cfg(target_os = "linux")]
-        fn build_crtime(_st: &FileStat) -> Option<SystemTime> {
+        /// Build crtime
+        const fn build_crtime(_st: &FileStat) -> Option<SystemTime> {
             None
         }
 
@@ -181,31 +194,51 @@ mod util {
 }
 
 #[derive(Debug)]
+/// DirEntry
 struct DirEntry {
+    /// Inode
     ino: u64,
+    /// Name
     name: OsString,
+    /// Entry type
     entry_type: Type,
 }
 
 #[derive(Debug)]
+/// DirNode
 struct DirNode {
+    /// Parent
     parent: Cell<u64>,
+    /// Name
     name: RefCell<OsString>,
+    /// Attr
     attr: Cell<FileAttr>,
+    /// Data
     data: RefCell<BTreeMap<OsString, DirEntry>>,
+    /// Dir fd
     dir_fd: RefCell<Dir>,
+    /// Open count
     open_count: AtomicI64,
+    /// Lookup count
     lookup_count: AtomicI64,
 }
 
 #[derive(Debug)]
+/// File Node
 struct FileNode {
+    /// Parent
     parent: Cell<u64>,
+    /// Name
     name: RefCell<OsString>,
+    /// Attr
     attr: Cell<FileAttr>,
+    /// Data
     data: RefCell<Vec<u8>>,
+    /// Fd
     fd: RawFd,
+    /// Open count
     open_count: AtomicI64,
+    /// Lookup count
     lookup_count: AtomicI64,
 }
 
@@ -223,12 +256,16 @@ impl Drop for FileNode {
 }
 
 #[derive(Debug)]
+/// Inode
 enum INode {
+    /// Dir
     DIR(DirNode),
+    /// File
     FILE(FileNode),
 }
 
 impl INode {
+    /// Helper get dir node
     fn helper_get_dir_node(&self) -> &DirNode {
         match self {
             Self::DIR(dir_node) => dir_node,
@@ -236,6 +273,7 @@ impl INode {
         }
     }
 
+    /// Helper get file node
     fn helper_get_file_node(&self) -> &FileNode {
         match self {
             Self::DIR(_) => panic!("helper_get_file_node() cannot read DirNode"),
@@ -243,10 +281,12 @@ impl INode {
         }
     }
 
+    /// Get info
     fn get_ino(&self) -> u64 {
         self.get_attr().ino
     }
 
+    /// Get parent inode
     fn get_parent_ino(&self) -> u64 {
         match self {
             Self::DIR(dir_node) => dir_node.parent.get(),
@@ -254,6 +294,7 @@ impl INode {
         }
     }
 
+    /// Set parent inode
     fn set_parent_ino(&self, parent: u64) -> u64 {
         match self {
             Self::DIR(dir_node) => dir_node.parent.replace(parent),
@@ -261,6 +302,7 @@ impl INode {
         }
     }
 
+    /// Get name
     fn get_name(&self) -> impl Deref<Target = OsString> + '_ {
         match self {
             Self::DIR(dir_node) => dir_node.name.borrow(),
@@ -268,6 +310,7 @@ impl INode {
         }
     }
 
+    /// Set name
     fn set_name(&self, name: OsString) -> OsString {
         match self {
             Self::DIR(dir_node) => dir_node.name.replace(name),
@@ -275,6 +318,7 @@ impl INode {
         }
     }
 
+    /// Get type
     fn get_type(&self) -> Type {
         match self {
             Self::DIR(_) => Type::Directory,
@@ -282,6 +326,7 @@ impl INode {
         }
     }
 
+    /// Get attr
     fn get_attr(&self) -> FileAttr {
         match self {
             Self::DIR(dir_node) => dir_node.attr.get(),
@@ -289,6 +334,7 @@ impl INode {
         }
     }
 
+    /// Lookup attr
     fn lookup_attr(&self, func: impl FnOnce(&FileAttr)) {
         let attr = match self {
             Self::DIR(dir_node) => {
@@ -306,6 +352,7 @@ impl INode {
         self.inc_lookup_count();
     }
 
+    /// Set attr
     fn set_attr(&mut self, func: impl FnOnce(&mut FileAttr)) {
         match self {
             Self::DIR(dir_node) => {
@@ -321,6 +368,7 @@ impl INode {
         }
     }
 
+    /// Inc open count
     fn inc_open_count(&self) -> i64 {
         match self {
             Self::DIR(dir_node) => dir_node.open_count.fetch_add(1, atomic::Ordering::SeqCst),
@@ -328,6 +376,7 @@ impl INode {
         }
     }
 
+    /// Dec open count
     fn dec_open_count(&self) -> i64 {
         match self {
             Self::DIR(dir_node) => dir_node.open_count.fetch_sub(1, atomic::Ordering::SeqCst),
@@ -335,6 +384,7 @@ impl INode {
         }
     }
 
+    /// Get open count
     fn get_open_count(&self) -> i64 {
         match self {
             Self::DIR(dir_node) => dir_node.open_count.load(atomic::Ordering::SeqCst),
@@ -342,6 +392,7 @@ impl INode {
         }
     }
 
+    /// Inc loopup count
     fn inc_lookup_count(&self) -> i64 {
         match self {
             Self::DIR(dir_node) => dir_node.lookup_count.fetch_add(1, atomic::Ordering::SeqCst),
@@ -351,6 +402,7 @@ impl INode {
         }
     }
 
+    /// Dec lookup count by
     fn dec_lookup_count_by(&self, nlookup: u64) -> i64 {
         debug_assert!(nlookup < std::i64::MAX.cast());
         match self {
@@ -363,6 +415,7 @@ impl INode {
         }
     }
 
+    /// Get loopup count
     fn get_lookup_count(&self) -> i64 {
         match self {
             Self::DIR(dir_node) => dir_node.lookup_count.load(atomic::Ordering::SeqCst),
@@ -370,6 +423,7 @@ impl INode {
         }
     }
 
+    /// Get entry
     fn get_entry(&self, name: &OsString) -> Option<DirEntry> {
         let parent_node = self.helper_get_dir_node();
         match parent_node.data.borrow().get(name) {
@@ -383,6 +437,7 @@ impl INode {
         }
     }
 
+    /// Open root inode
     fn open_root_inode(root_ino: u64, name: OsString, path: &Path) -> Self {
         let dir_fd = util::open_dir(path)
             .unwrap_or_else(|_| panic!("new_dir_inode() failed to open directory {:?}", path));
@@ -412,6 +467,7 @@ impl INode {
         root_inode
     }
 
+    /// Helper open child dir
     fn helper_open_child_dir(
         &self,
         child_dir_name: &OsString,
@@ -482,14 +538,17 @@ impl INode {
         child_inode
     }
 
+    /// Open child dir
     fn open_child_dir(&self, child_dir_name: &OsString) -> Self {
         self.helper_open_child_dir(child_dir_name, Mode::empty(), false)
     }
 
+    /// Create child dir
     fn create_child_dir(&self, child_dir_name: &OsString, mode: Mode) -> Self {
         self.helper_open_child_dir(child_dir_name, mode, true)
     }
 
+    /// Helper load dir data
     fn helper_load_dir_data(&self) {
         let dir_node = self.helper_get_dir_node();
         let dir_entry: Vec<Entry> = dir_node
@@ -536,6 +595,7 @@ impl INode {
         );
     }
 
+    /// Helper load file data
     fn helper_load_file_data(&self) {
         let file_node = self.helper_get_file_node();
         let ino = self.get_ino();
@@ -568,6 +628,7 @@ impl INode {
         );
     }
 
+    /// Helper reload attr
     fn helper_reload_attribute(&self) -> FileAttr {
         let raw_fd = match self {
             Self::DIR(dir_node) => dir_node.dir_fd.borrow().as_raw_fd(),
@@ -587,6 +648,7 @@ impl INode {
     }
 
     // to open child, parent dir must have been opened
+    /// Helper open child file
     fn helper_open_child_file(
         &self,
         child_file_name: &OsString,
@@ -649,14 +711,17 @@ impl INode {
         })
     }
 
+    /// Open child file
     fn open_child_file(&self, child_file_name: &OsString, oflags: OFlag) -> Self {
         self.helper_open_child_file(child_file_name, oflags, Mode::empty(), false)
     }
 
+    /// Create child file
     fn create_child_file(&self, child_file_name: &OsString, oflags: OFlag, mode: Mode) -> Self {
         self.helper_open_child_file(child_file_name, oflags, mode, true)
     }
 
+    /// Dup fd
     fn dup_fd(&self, oflags: OFlag) -> RawFd {
         let raw_fd: RawFd;
         match self {
@@ -689,6 +754,7 @@ impl INode {
         new_fd
     }
 
+    /// Insert entry
     fn insert_entry(&self, child_entry: DirEntry) -> Option<DirEntry> {
         let parent_node = self.helper_get_dir_node();
         let previous_entry = parent_node
@@ -703,6 +769,7 @@ impl INode {
         previous_entry
     }
 
+    /// Remove entry
     fn remove_entry(&self, child_name: &OsString) -> DirEntry {
         let parent_node = self.helper_get_dir_node();
         parent_node
@@ -720,6 +787,7 @@ impl INode {
             })
     }
 
+    /// Unlink entry
     fn unlink_entry(&self, child_name: &OsString) -> DirEntry {
         let parent_node = self.helper_get_dir_node();
         let child_entry = self.remove_entry(child_name);
@@ -764,6 +832,7 @@ impl INode {
         child_entry
     }
 
+    /// Is empty
     fn is_empty(&self) -> bool {
         match self {
             Self::DIR(dir_node) => dir_node.data.borrow().is_empty(),
@@ -771,6 +840,7 @@ impl INode {
         }
     }
 
+    /// Need load data
     fn need_load_data(&self) -> bool {
         if !self.is_empty() {
             debug!(
@@ -796,6 +866,7 @@ impl INode {
         }
     }
 
+    /// Read dir
     fn read_dir(&self, func: impl FnOnce(&BTreeMap<OsString, DirEntry>)) {
         let dir_node = self.helper_get_dir_node();
         if self.need_load_data() {
@@ -804,6 +875,7 @@ impl INode {
         func(&dir_node.data.borrow());
     }
 
+    /// Read file
     fn read_file(&self, func: impl FnOnce(&Vec<u8>)) {
         let file_node = self.helper_get_file_node();
         if self.need_load_data() {
@@ -812,6 +884,7 @@ impl INode {
         func(&file_node.data.borrow());
     }
 
+    /// Write file
     fn write_file(&mut self, fh: u64, offset: i64, data: &[u8], oflags: OFlag) -> usize {
         let file_node = match self {
             Self::DIR(_) => panic!("write_file() cannot write DirNode"),
@@ -881,6 +954,7 @@ impl INode {
         written_size
     }
 
+    /// Helper move file
     fn helper_move_file(
         old_parent_inode: &Self,
         old_name: &OsStr,
@@ -907,13 +981,17 @@ impl INode {
     }
 }
 
+/// Memory FS
 pub struct MemoryFilesystem {
     // max_ino: AtomicU64,
+    /// Cache
     cache: BTreeMap<u64, INode>,
+    /// Trash
     trash: BTreeSet<u64>,
 }
 
 impl MemoryFilesystem {
+    /// Helper create node
     fn helper_create_node(
         &mut self,
         parent: u64,
@@ -983,6 +1061,7 @@ impl MemoryFilesystem {
         );
     }
 
+    /// Helper get parent inode
     fn helper_get_parent_inode(&self, ino: u64) -> &INode {
         let inode = self.cache.get(&ino).unwrap_or_else(|| {
             panic!(
@@ -994,6 +1073,7 @@ impl MemoryFilesystem {
         self.cache.get(&parent_ino).unwrap_or_else(|| panic!("helper_get_parent_inode() failed to find the parent of ino={} for i-node of ino={}", parent_ino, ino))
     }
 
+    /// Helper may defer delete node
     fn helper_may_deferred_delete_node(&mut self, ino: u64) {
         let parent_ino: u64;
         let mut deferred_deletion = false;
@@ -1046,6 +1126,7 @@ impl MemoryFilesystem {
         }
     }
 
+    /// Helper remove node
     fn helper_remove_node(
         &mut self,
         parent: u64,
@@ -1116,6 +1197,7 @@ impl MemoryFilesystem {
         }
     }
 
+    /// New
     pub fn new<P: AsRef<Path>>(mount_point: P) -> Self {
         let mount_dir = PathBuf::from(mount_point.as_ref());
         if !mount_dir.is_dir() {
@@ -1825,6 +1907,7 @@ impl Filesystem for MemoryFilesystem {
     }
 }
 
+/// Test module
 mod test {
     #[test]
     fn test_libc_renameat() {
