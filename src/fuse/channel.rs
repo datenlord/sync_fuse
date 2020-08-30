@@ -28,7 +28,7 @@ pub struct fuse_args {
     pub allocated: c_int,
 }
 
-/// Helper function to provide options as a fuse_args struct
+/// Helper function to provide options as a `fuse_args` struct
 /// (which contains an argc count and an argv pointer)
 #[allow(dead_code)]
 fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T {

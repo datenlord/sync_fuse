@@ -120,7 +120,7 @@ mod param {
             }
         }
 
-        /// Parse allow_other
+        /// Parse `allow_other`
         fn parse_allow_other(
             args: &mut FuseMountArgs,
             _mount_option: &FuseMountOption,
