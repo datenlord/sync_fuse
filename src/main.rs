@@ -21,12 +21,16 @@ fn main() {
                 .help("Mount options")
                 .multiple(true)
                 .takes_value(true)
-                .validator(fuse::options_validator)
+                .validator(|option| fuse::options_validator(option.as_str()))
                 .number_of_values(1),
         )
         .get_matches();
 
-    let mountpoint = OsStr::new(matches.value_of("mountpoint").unwrap()); // safe to use unwrap() here, because mountpoint is required
+    let mountpoint = OsStr::new(
+        matches
+            .value_of("mountpoint")
+            .unwrap_or_else(|| panic!("Couldn't new mount point {:?}", matches)),
+    ); // safe to use unwrap() here, because mountpoint is required
     let options: Vec<&str> = match matches.values_of("options") {
         Some(options) => options.flat_map(|o| o.split(',')).collect(),
         None => Vec::new(),

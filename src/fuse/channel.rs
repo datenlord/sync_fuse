@@ -28,11 +28,11 @@ pub struct fuse_args {
 /// (which contains an argc count and an argv pointer)
 #[allow(dead_code)]
 fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T {
-    let mut args = vec![CString::new("fuse-rs").expect("CString::new failed")];
+    let mut args = vec![CString::new("fuse-rs").unwrap_or_else(|_| panic!("CString::new failed"))];
     args.extend(
         options
             .iter()
-            .map(|s| CString::new(s.as_bytes()).expect("CString::new failed")),
+            .map(|s| CString::new(s.as_bytes()).unwrap_or_else(|_| panic!("CString::new failed"))),
     );
     let argptrs: Vec<_> = args.iter().map(|s| s.as_ptr()).collect();
     f(&fuse_args {
@@ -129,9 +129,9 @@ impl Drop for Channel {
         // Close the communication channel to the kernel driver
         // (closing it before unnmount prevents sync unmount deadlock)
         // unsafe { libc::close(self.fd); }
-        let _ = unistd::close(self.fd);
+        unistd::close(self.fd).unwrap_or_else(|_| panic!());
         // Unmount this channel's mount point
-        let _ = unmount(self.mountpoint.as_ref());
+        unmount(self.mountpoint.as_ref()).unwrap_or_else(|_| panic!());
     }
 }
 
