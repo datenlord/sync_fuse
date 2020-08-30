@@ -1688,13 +1688,6 @@ impl Filesystem for MemoryFilesystem {
             param.offset,
             if let Some(data) = param.data.get(0..100) {
                 data
-<<<<<<< HEAD
-=======
-            if param.data.len() > 100 {
-                &param.data.get(0..100).unwrap_or_else(|| panic!())
->>>>>>> Fix some lint issues
-=======
->>>>>>> Resolve conflict
             } else {
                 param.data
             }

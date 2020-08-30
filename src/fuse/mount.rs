@@ -367,18 +367,13 @@ mod param {
 
             let mount_options_map = super::get_mount_options_map();
             options.iter().for_each(|op| {
-<<<<<<< HEAD
                 let key = op
                     .split('=')
                     .collect::<Vec<_>>()
                     .get(0)
                     .unwrap_or_else(|| panic!("Indexing is out of bounds"))
                     .to_string();
-                let option = mount_options_map.get(&key).unwrap(); // Safe to use unwrap here, because key always exists
-=======
-                let key = (*op.split('=').collect::<Vec<_>>().get(0).unwrap_or_else(|| panic!())).to_string();
                 let option = mount_options_map.get(&key).unwrap_or_else(|| panic!()); // Safe to use unwrap here, because key always exists
->>>>>>> Fix some lint issues
                 (option.parser)(&mut args, option, op)
             });
             args
