@@ -60,6 +60,7 @@ fn as_bytes<T, U, F: FnOnce(&[&[u8]]) -> U>(data: &T, f: F) -> U {
     }
 }
 
+/// Time from system time
 fn time_from_system_time(system_time: &SystemTime) -> Result<(u64, u32), SystemTimeError> {
     let duration = system_time.duration_since(UNIX_EPOCH)?;
     Ok((duration.as_secs(), duration.subsec_nanos()))
@@ -217,6 +218,7 @@ impl<T> Drop for ReplyRaw<T> {
 ///
 #[derive(Debug)]
 pub struct ReplyEmpty {
+    /// Reply
     reply: ReplyRaw<()>,
 }
 
@@ -245,6 +247,7 @@ impl ReplyEmpty {
 ///
 #[derive(Debug)]
 pub struct ReplyData {
+    /// Reply
     reply: ReplyRaw<()>,
 }
 
@@ -273,6 +276,7 @@ impl ReplyData {
 ///
 #[derive(Debug)]
 pub struct ReplyEntry {
+    /// Reply
     reply: ReplyRaw<fuse_entry_out>,
 }
 
@@ -309,6 +313,7 @@ impl ReplyEntry {
 ///
 #[derive(Debug)]
 pub struct ReplyAttr {
+    /// Reply
     reply: ReplyRaw<fuse_attr_out>,
 }
 
@@ -384,6 +389,7 @@ impl ReplyXTimes {
 ///
 #[derive(Debug)]
 pub struct ReplyOpen {
+    /// Reply
     reply: ReplyRaw<fuse_open_out>,
 }
 
@@ -417,6 +423,7 @@ impl ReplyOpen {
 ///
 #[derive(Debug)]
 pub struct ReplyWrite {
+    /// Reply
     reply: ReplyRaw<fuse_write_out>,
 }
 
@@ -445,6 +452,7 @@ impl ReplyWrite {
 ///
 #[derive(Debug)]
 pub struct ReplyStatfs {
+    /// Reply
     reply: ReplyRaw<fuse_statfs_out>,
 }
 
@@ -508,6 +516,7 @@ impl ReplyStatfs {
 ///
 #[derive(Debug)]
 pub struct ReplyCreate {
+    /// Reply
     reply: ReplyRaw<(fuse_entry_out, fuse_open_out)>,
 }
 
@@ -552,6 +561,7 @@ impl ReplyCreate {
 ///
 #[derive(Debug)]
 pub struct ReplyLock {
+    /// Reply
     reply: ReplyRaw<fuse_lk_out>,
 }
 
@@ -588,6 +598,7 @@ impl ReplyLock {
 ///
 #[derive(Debug)]
 pub struct ReplyBmap {
+    /// Reply
     reply: ReplyRaw<fuse_bmap_out>,
 }
 
@@ -617,7 +628,9 @@ impl ReplyBmap {
 ///
 #[derive(Debug)]
 pub struct ReplyDirectory {
+    /// Reply
     reply: ReplyRaw<()>,
+    /// Data
     data: Vec<u8>,
 }
 
@@ -688,6 +701,7 @@ impl ReplyDirectory {
 ///
 #[derive(Debug)]
 pub struct ReplyXattr {
+    /// Reply
     reply: ReplyRaw<fuse_getxattr_out>,
 }
 

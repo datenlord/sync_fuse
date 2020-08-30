@@ -21,18 +21,26 @@ use super::conversion;
 #[cfg(target_os = "macos")]
 use super::Cast;
 
+/// Fuse mount option
 pub struct FuseMountOption {
+    /// Name
     pub name: String,
+    /// Parser
     pub parser: fn(&mut FuseMountArgs, &FuseMountOption, &str),
+    /// validator
     pub validator: fn(&FuseMountOption, &str) -> bool,
     #[cfg(target_os = "linux")]
+    /// Flag
     pub flag: Option<u64>,
     #[cfg(target_os = "macos")]
+    /// Flag
     pub flag: Option<i32>,
     #[cfg(target_os = "macos")]
+    /// Fuse flag
     pub fuse_flag: Option<u64>,
 }
 
+/// Get all options
 fn get_all_options() -> String {
     get_mount_options()
         .iter()
@@ -59,6 +67,7 @@ pub fn options_validator(option: &str) -> Result<(), String> {
     }
 }
 
+/// Get mount options map
 pub fn get_mount_options_map() -> HashMap<String, FuseMountOption> {
     let mut map: HashMap<String, FuseMountOption> = HashMap::new();
     for op in get_mount_options() {
@@ -78,16 +87,22 @@ pub fn get_mount_options_map() -> HashMap<String, FuseMountOption> {
 }
 
 #[cfg(target_os = "linux")]
+/// Param
 mod param {
     // https://github.com/torvalds/linux/blob/master/include/uapi/linux/mount.h#L11
     // TODO: use mount flags from libc
+    /// Read-only
     pub const MS_RDONLY: u64 = 1; // Mount read-only
+    /// NOSUID
     pub const MS_NOSUID: u64 = 2; // Ignore suid and sgid bits
+    /// NODEV
     pub const MS_NODEV: u64 = 4; // Disallow access to device special files
+    /// Force un-mount
     pub const MNT_FORCE: i32 = 1; // Force un-mount
 
     use super::FuseMountOption;
     use regex::Regex;
+    /// Add option
     fn add_option(options: &Option<String>, option: &str) -> Option<String> {
         match options {
             None => Some(String::from(option)),
@@ -95,7 +110,9 @@ mod param {
         }
     }
 
+    /// Get mount options
     pub fn get_mount_options() -> Vec<FuseMountOption> {
+        /// Parse flag
         fn parse_flag(args: &mut FuseMountArgs, mount_option: &FuseMountOption, option: &str) {
             if let Some(flag) = mount_option.flag {
                 args.flags |= flag;
@@ -103,6 +120,7 @@ mod param {
             }
         }
 
+        /// Parse allow_other
         fn parse_allow_other(
             args: &mut FuseMountArgs,
             _mount_option: &FuseMountOption,
@@ -112,14 +130,17 @@ mod param {
             args.kernel_opts = add_option(&args.kernel_opts, option);
         }
 
+        /// Parse fsname
         fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
             let name = String::from(option.split('=').last().unwrap()); //Safe to use unwrap here, becuase option is always valid.
             args.fsname = Some(name);
             args.fusermount_opts = add_option(&args.fusermount_opts, option);
         }
+        /// Match name
         fn name_match(mount_option: &FuseMountOption, option: &str) -> bool {
             option == mount_option.name
         }
+        /// Match key value
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
             let name = String::from(mount_option.name.split('=').next().unwrap()); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
@@ -150,21 +171,34 @@ mod param {
 
     #[repr(C)]
     #[derive(Debug)]
+    /// Fuse mount args
     pub struct FuseMountArgs {
+        /// Allow other
         allow_other: i32,
+        /// Flags
         flags: u64,
+        /// Auto_unmount
         auto_unmount: i32,
+        /// Block dev
         blkdev: i32,
+        /// Fsname
         fsname: Option<String>,
+        /// Subtype
         subtype: Option<String>,
+        /// Subtype options
         subtype_opt: Option<String>,
+        /// Mtab options
         mtab_opts: Option<String>,
+        /// Fusermount opts
         fusermount_opts: Option<String>,
+        /// Kernel opts
         kernel_opts: Option<String>,
+        /// Max read
         max_read: u32,
     }
 
     impl FuseMountArgs {
+        /// Parse
         pub fn parse(options: &[&str]) -> Self {
             // TODO: add default arguments
             let mut args = Self {
@@ -188,42 +222,57 @@ mod param {
             });
             args
         }
+        /// Get kernel opts
         pub fn get_kernel_opts(&self) -> Option<&String> {
             self.kernel_opts.as_ref()
         }
+        /// Get fusermount opts
         pub fn get_fusermount_opts(&self) -> Option<&String> {
             self.fusermount_opts.as_ref()
         }
+        /// Get mtab opts
         pub fn get_mtab_opts(&self) -> Option<&String> {
             self.mtab_opts.as_ref()
         }
-        pub fn get_blkdev(&self) -> i32 {
+        /// Get blkdev
+        pub const fn get_blkdev(&self) -> i32 {
             self.blkdev
         }
+        /// Get subtype
         pub fn get_subtype(&self) -> Option<&String> {
             self.subtype.as_ref()
         }
+        /// Get subtype opt
         pub fn get_subtype_opt(&self) -> Option<&String> {
             self.subtype_opt.as_ref()
         }
+        /// Get fsname
         pub fn get_fsname(&self) -> Option<&String> {
             self.fsname.as_ref()
         }
-        pub fn get_flags(&self) -> u64 {
+        /// Get flags
+        pub const fn get_flags(&self) -> u64 {
             self.flags
         }
     }
 }
 
 #[cfg(target_os = "macos")]
+/// Param
 mod param {
     // https://github.com/apple/darwin-xnu/blob/master/bsd/sys/mount.h#L288
     // TODO: use mount flags from libc
+    /// RDONLY
     pub const MNT_RDONLY: i32 = 0x0000_0001; // read only filesystem
+    /// NOSUID
     pub const MNT_NOSUID: i32 = 0x0000_0008; // don't honor setuid bits on fs
+    /// NODEV
     pub const MNT_NODEV: i32 = 0x0000_0010; // don't interpret special files
+    /// Force unmount
     pub const MNT_FORCE: i32 = 0x0008_0000; // force unmount or readonly change
+    /// NOUSERXATTR
     pub const MNT_NOUSERXATTR: i32 = 0x0100_0000; // Don't allow user extended attributes
+    /// NOATIME
     pub const MNT_NOATIME: i32 = 0x1000_0000; // disable update of file access time
 
     #[allow(dead_code)]
@@ -272,6 +321,7 @@ mod param {
 
     use super::FuseMountOption;
     use regex::Regex;
+    /// Get mount options
     pub fn get_mount_options() -> Vec<FuseMountOption> {
         fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &FuseMountOption, _option: &str) {
         }
@@ -379,19 +429,23 @@ mod param {
             args
         }
 
+        /// Set mntpath
         pub fn set_mntpath(&mut self, mntpath: [u8; MAXPATHLEN]) {
             self.mntpath = mntpath;
         }
 
+        /// Set random
         pub fn set_random(&mut self, drandom: u32) {
             self.random = drandom;
         }
 
+        /// Set rdev
         pub fn set_rdev(&mut self, rdev: u32) {
             self.rdev = rdev;
         }
     }
 
+    /// Copy slice
     pub fn copy_slice<T: Copy>(from: &[T], to: &mut [T]) {
         let to_len = to.len();
         to.get_mut(..from.len())
@@ -399,6 +453,7 @@ mod param {
             .copy_from_slice(from);
     }
 
+    /// Parse mount flag
     pub fn parse_mount_flag(options: &[&str]) -> i32 {
         let mut flag: i32 = 0;
         options.iter().for_each(|&op| {
@@ -416,6 +471,7 @@ mod param {
 }
 
 #[cfg(target_os = "linux")]
+/// Umount
 pub fn umount(short_path: &Path) -> i32 {
     use nix::unistd;
     use std::process::Command;
@@ -451,6 +507,7 @@ pub fn umount(short_path: &Path) -> i32 {
 }
 
 #[cfg(target_os = "linux")]
+/// Mount
 pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::unistd;
 
@@ -464,6 +521,7 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
 }
 
 #[cfg(target_os = "linux")]
+/// Fusermount
 fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::cmsg_space;
     use nix::sys::socket::{
@@ -531,6 +589,7 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
 }
 
 #[cfg(target_os = "linux")]
+/// Direct mount
 fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     use nix::sys::stat::SFlag;
     use nix::unistd;
@@ -627,6 +686,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
 }
 
 #[cfg(any(target_os = "macos"))]
+/// Umount
 pub fn umount(mount_point: &Path) -> i32 {
     let mntpnt = mount_point.as_os_str();
     #[allow(unsafe_code)]
@@ -636,6 +696,7 @@ pub fn umount(mount_point: &Path) -> i32 {
 }
 
 #[cfg(any(target_os = "macos"))]
+/// Mount
 pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     let mut args = FuseMountArgs::parse(options);
     let devpath = Path::new("/dev/osxfuse1");

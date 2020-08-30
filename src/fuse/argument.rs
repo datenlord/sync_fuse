@@ -9,6 +9,7 @@ use std::os::unix::ffi::OsStrExt;
 
 /// An iterator that can be used to fetch typed arguments from a byte slice.
 pub struct FuseArgumentIterator<'a> {
+    /// Data
     data: &'a [u8],
 }
 

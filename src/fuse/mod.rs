@@ -29,15 +29,25 @@ pub use session::Session;
 // pub use session::{Session, BackgroundSession};
 
 pub use mount::options_validator;
+/// Abi module
 mod abi;
+/// Argument module
 mod argument;
+/// Channel module
 mod channel;
+/// Conversion module
 mod conversion;
+/// ll request module
 mod ll_request;
+/// Mount module
 mod mount;
+/// Reply module
 mod reply;
+/// Request module
 mod request;
+/// Session module
 mod session;
+/// Utils module
 mod utils;
 pub use conversion::Cast;
 pub use utils::OverflowArithmetic;

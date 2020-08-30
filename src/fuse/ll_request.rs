@@ -55,6 +55,7 @@ impl error::Error for RequestError {}
 /// Filesystem operation (and arguments) the kernel driver wants us to perform. The fields of each
 /// variant needs to match the actual arguments the kernel driver sends for the specific operation.
 #[derive(Debug)]
+#[allow(clippy::missing_docs_in_private_items)]
 pub enum Operation<'a> {
     Lookup {
         name: &'a OsStr,
@@ -258,6 +259,7 @@ impl fmt::Display for Operation<'_> {
 }
 
 impl<'a> Operation<'a> {
+    /// Parse
     fn parse(opcode: &fuse_opcode, data: &mut FuseArgumentIterator<'a>) -> Option<Self> {
         #[allow(unsafe_code)]
         unsafe {
@@ -356,7 +358,9 @@ impl<'a> Operation<'a> {
 /// Low-level request of a filesystem operation the kernel driver wants to perform.
 #[derive(Debug)]
 pub struct Request<'a> {
+    /// Header
     header: &'a fuse_in_header,
+    /// Operation
     operation: Operation<'a>,
 }
 

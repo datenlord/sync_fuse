@@ -18,9 +18,13 @@ use super::Cast;
 
 #[repr(C)]
 #[derive(Debug)]
+/// Fuse args
 pub struct fuse_args {
+    /// Argc
     pub argc: c_int,
+    /// Argv
     pub argv: *const *const c_char,
+    /// Allocated
     pub allocated: c_int,
 }
 
@@ -44,8 +48,11 @@ fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[&OsStr], f: F) -> T 
 
 /// A raw communication channel to the FUSE kernel driver
 #[derive(Debug)]
+/// Channel
 pub struct Channel {
+    /// Mount point
     mountpoint: PathBuf,
+    /// Fd
     fd: c_int,
 }
 
@@ -136,7 +143,9 @@ impl Drop for Channel {
 }
 
 #[derive(Clone, Copy, Debug)]
+/// Fuse channel sender
 pub struct FuseChannelSender {
+    /// Fd
     fd: c_int,
 }
 

@@ -21,12 +21,14 @@ pub trait Cast {
 
 impl<U> Cast for U {}
 
+/// Cast to pointer
 pub const fn cast_to_ptr<T: ?Sized, U>(val: &T) -> *const U {
     let ptr: *const _ = val;
     ptr.cast()
 }
 
 #[allow(dead_code)]
+/// Cast to mut pointer
 pub fn cast_to_mut_ptr<T: ?Sized, U>(val: &mut T) -> *mut U {
     let ptr: *mut _ = val;
     ptr.cast()

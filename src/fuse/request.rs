@@ -116,12 +116,14 @@ impl<'a> Request<'a> {
         }
         #[cfg(not(target_os = "macos"))]
         #[inline]
+        /// Get position
         const fn get_position(_arg: &fuse_setxattr_in) -> u32 {
             0
         }
         #[cfg(not(target_os = "macos"))]
         #[inline]
-        fn get_macos_setattr(
+        /// Get macos setattr
+        const fn get_macos_setattr(
             _arg: &fuse_setattr_in,
         ) -> (
             Option<SystemTime>,
