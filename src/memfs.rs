@@ -1275,7 +1275,6 @@ impl Filesystem for MemoryFilesystem {
 
         let read_helper = |content: &Vec<u8>| {
             if offset.cast::<usize>() < content.len() {
-<<<<<<< HEAD
                 let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>())) < content.len() {
                     content
                         .get(offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>())))
@@ -1295,15 +1294,6 @@ impl Filesystem for MemoryFilesystem {
                             content.len()
                         )
                     })
-=======
-                let read_data = if (offset.cast::<usize>().overflow_add(size.cast::<usize>()))
-                    < content.len()
-                {
-                    content
-                        .get(offset.cast()..(offset.cast::<usize>().overflow_add(size.cast::<usize>()))).unwrap_or_else(|| panic!())
-                } else {
-                    content.get(offset.cast()..).unwrap_or_else(|| panic!())
->>>>>>> Fix some lint issues
                 };
                 debug!(
                     "read() successfully from the file of ino={}, the read size is: {:?}",
@@ -1669,13 +1659,15 @@ impl Filesystem for MemoryFilesystem {
             param.data.len(),
             param.ino,
             param.offset,
-<<<<<<< HEAD
             if let Some(data) = param.data.get(0..100) {
                 data
+<<<<<<< HEAD
 =======
             if param.data.len() > 100 {
                 &param.data.get(0..100).unwrap_or_else(|| panic!())
 >>>>>>> Fix some lint issues
+=======
+>>>>>>> Resolve conflict
             } else {
                 param.data
             }
