@@ -64,6 +64,7 @@ impl<'a> Request<'a> {
     /// Dispatch request to the given filesystem.
     /// This calls the appropriate filesystem operation method for the
     /// request and sends back the returned reply to the kernel
+    #[allow(clippy::too_many_lines)]
     pub fn dispatch<FS: Filesystem>(&self, se: &mut Session<FS>) {
         #[cfg(target_os = "macos")]
         #[inline]
