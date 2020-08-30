@@ -15,6 +15,12 @@ use super::abi::consts::{
     FATTR_ATIME, FATTR_FH, FATTR_GID, FATTR_MODE, FATTR_MTIME, FATTR_SIZE, FATTR_UID,
     FUSE_ASYNC_READ, FUSE_RELEASE_FLUSH,
 };
+#[cfg(target_os = "macos")]
+use super::abi::consts::{
+    FATTR_BKUPTIME, FATTR_CHGTIME, FATTR_CRTIME, FATTR_FLAGS, FUSE_CASE_INSENSITIVE,
+    FUSE_VOL_RENAME, FUSE_XTIMES,
+};
+
 use super::abi::{
     fuse_init_out, fuse_setattr_in, fuse_setxattr_in, FUSE_KERNEL_MINOR_VERSION,
     FUSE_KERNEL_VERSION,
@@ -74,6 +80,7 @@ impl<'a> Request<'a> {
     pub fn dispatch<FS: Filesystem>(&self, se: &mut Session<FS>) {
         #[cfg(target_os = "macos")]
         #[inline]
+        /// Get macos setattr
         fn get_macos_setattr(
             arg: &fuse_setattr_in,
         ) -> (
@@ -117,6 +124,7 @@ impl<'a> Request<'a> {
         }
         #[cfg(target_os = "macos")]
         #[inline]
+        /// Get position
         const fn get_position(arg: &fuse_setxattr_in) -> u32 {
             arg.position
         }

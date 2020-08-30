@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Pu Wang <nicolas.weeks@gmail.com>"]
 edition = "2018"
 description = "Fuse Low Level"
+repository = "https://github.com/datenlord/sync_fuse"
+readme = "README.md"
+license = "MIT"
+keywords = ["fuse"]
+categories = ["libfuse"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

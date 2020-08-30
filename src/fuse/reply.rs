@@ -84,7 +84,7 @@ fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
         | perm.cast::<u32>()
 }
 
-/// Returns a fuse_attr from FileAttr
+/// Returns a `fuse_attr` from `FileAttr`
 #[cfg(target_os = "macos")]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
@@ -345,11 +345,13 @@ impl ReplyAttr {
 }
 
 ///
-/// XTimes Reply
+/// `XTimes` Reply
 ///
 #[cfg(target_os = "macos")]
 #[derive(Debug)]
+/// Reply xtimes
 pub struct ReplyXTimes {
+    /// Reply
     reply: ReplyRaw<fuse_getxtimes_out>,
 }
 
