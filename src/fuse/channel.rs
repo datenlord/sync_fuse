@@ -131,7 +131,7 @@ impl Drop for Channel {
         // unsafe { libc::close(self.fd); }
         unistd::close(self.fd).unwrap_or_else(|_| panic!());
         // Unmount this channel's mount point
-        unmount(self.mountpoint.as_ref()).unwrap_or_else(|_| panic!());
+        unmount(self.mountpoint.as_ref()).unwrap_or_else(|_| ());
     }
 }
 
