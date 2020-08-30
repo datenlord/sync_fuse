@@ -88,7 +88,7 @@ impl<FS: Filesystem> Session<FS> {
                     Some(ENOENT) | Some(EINTR) | Some(EAGAIN) => continue,
                     Some(ENODEV) => break,
                     // Unhandled error
-                    _ => return Err(err),
+                    None | Some(_) => return Err(err),
                 },
             }
         }
