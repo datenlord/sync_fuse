@@ -5,7 +5,7 @@ macro_rules! impl_overflow_arithmetic {
     ($target: ty) => {
         impl OverflowArithmetic<$target> for $target {
             #[inline]
-            fn overflow_add(self, other: $target) -> Self {
+            fn overflow_add(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_add(other);
                 debug_assert!(
                     !overflow,
@@ -19,7 +19,7 @@ macro_rules! impl_overflow_arithmetic {
             }
 
             #[inline]
-            fn overflow_sub(self, other: $target) -> Self {
+            fn overflow_sub(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_sub(other);
                 debug_assert!(
                     !overflow,
@@ -33,7 +33,7 @@ macro_rules! impl_overflow_arithmetic {
             }
 
             #[inline]
-            fn overflow_mul(self, other: $target) -> Self {
+            fn overflow_mul(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_mul(other);
                 debug_assert!(
                     !overflow,
@@ -47,7 +47,7 @@ macro_rules! impl_overflow_arithmetic {
             }
 
             #[inline]
-            fn overflow_div(self, other: $target) -> Self {
+            fn overflow_div(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_div(other);
                 debug_assert!(
                     !overflow,
@@ -61,7 +61,7 @@ macro_rules! impl_overflow_arithmetic {
             }
 
             #[inline]
-            fn overflow_shr(self, other: $target) -> Self {
+            fn overflow_shr(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_shr(other.cast());
                 debug_assert!(
                     !overflow,

@@ -783,10 +783,11 @@ pub fn mount(mount_point: &Path, options: &[&str]) -> RawFd {
     // result = ioctl(fd, FUSEDEVIOCGETRANDOM, &drandom);
     // FUSEDEVIOCGETRANDOM // osxfuse/common/fuse_ioctl.h#L43
     let mut drandom: u32 = 0;
-    ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
-    use nix::ioctl_read;
+    #[allow(clippy::integer_arithmetic)]
     #[allow(unsafe_code)]
     let result = unsafe {
+        ioctl_read!(fuse_read_random, FUSE_IOC_MAGIC, FUSE_IOC_TYPE_MODE, u32);
+        use nix::ioctl_read;
         fuse_read_random(fd, conversion::cast_to_mut_ptr(&mut drandom)).unwrap_or_else(|_| panic!())
     };
     if result == 0 {
