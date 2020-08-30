@@ -665,7 +665,7 @@ mod tests {
                ],*/
         ];
         for sr in reqs {
-            let req = Request::try_from(&sr[..]).unwrap();
+            let req = Request::try_from(&sr[..]).unwrap_or_else(|_| panic!());
             debug_attr(&req);
         }
 
@@ -716,7 +716,7 @@ mod tests {
 
     #[test]
     fn init() {
-        let req = Request::try_from(&INIT_REQUEST[..]).unwrap();
+        let req = Request::try_from(&INIT_REQUEST[..]).unwrap_or_else(|_| panic!());
         assert_eq!(req.header.len, 56);
         assert_eq!(req.header.opcode, 26);
         assert_eq!(req.unique(), 0xdead_beef_baad_f00d);
@@ -736,7 +736,7 @@ mod tests {
 
     #[test]
     fn mknod() {
-        let req = Request::try_from(&MKNOD_REQUEST[..]).unwrap();
+        let req = Request::try_from(&MKNOD_REQUEST[..]).unwrap_or_else(|_| panic!());
         assert_eq!(req.header.len, 56);
         assert_eq!(req.header.opcode, 8);
         assert_eq!(req.unique(), 0xdead_beef_baad_f00d);

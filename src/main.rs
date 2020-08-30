@@ -57,7 +57,7 @@ mod test {
         }
         let num: u64 = 100;
         let u64ref = &num;
-        u64fn(u64ref.clone());
+        u64fn(*u64ref);
     }
 
     #[test]
@@ -95,27 +95,27 @@ mod test {
         map.insert(k4.to_string(), vec![4, 4, 4, 4]);
 
         let lock = RwLock::new(map);
-        let mut map = lock.write().unwrap();
+        let mut map = lock.write().unwrap_or_else(|_| panic!());
 
-        let e1: *mut _ = map.get_mut(k1).unwrap();
-        let e2: *mut _ = map.get_mut(k2).unwrap();
+        let e1: *mut _ = map.get_mut(k1).unwrap_or_else(|| panic!());
+        let e2: *mut _ = map.get_mut(k2).unwrap_or_else(|| panic!());
         //std::mem::swap(e1, e2);
         unsafe {
             ptr::swap(e1, e2);
         }
-        dbg!(&map[k1]);
-        dbg!(&map[k2]);
+        dbg!(&map.get(k1));
+        dbg!(&map.get(k2));
 
-        let e3 = map.get_mut(k3).unwrap();
+        let e3 = map.get_mut(k3).unwrap_or_else(|| panic!());
         e3.push(3);
-        dbg!(&map[k3]);
+        dbg!(&map.get(k3));
 
         let k5 = "E";
         let e = map.entry(k5.to_string());
         if let Entry::Vacant(v) = e {
             v.insert(vec![5, 5, 5, 5, 5]);
         }
-        dbg!(&map[k5]);
+        dbg!(&map.get(k5));
     }
     #[test]
     fn test_map_entry() {

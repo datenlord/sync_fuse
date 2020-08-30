@@ -1218,7 +1218,7 @@ mod test {
 
     impl super::ReplySender for Sender<()> {
         fn send(&self, _: &[&[u8]]) {
-            Sender::send(self, ()).unwrap()
+            Sender::send(self, ()).unwrap_or_else(|_| panic!())
         }
     }
 
@@ -1259,6 +1259,6 @@ mod test {
         thread::spawn(move || {
             reply.ok();
         });
-        rx.recv().unwrap();
+        rx.recv().unwrap_or_else(|_| panic!());
     }
 }
