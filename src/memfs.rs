@@ -555,8 +555,7 @@ impl INode {
             .dir_fd
             .borrow_mut()
             .iter()
-            .filter(Result::is_ok)
-            .map(Result::unwrap) // safe to use unwrap() here
+            .filter_map(std::result::Result::ok)
             .filter(|e| {
                 let bytes = e.file_name().to_bytes();
                 !bytes.starts_with(&[b'.']) // skip hidden entries, '.' and '..'

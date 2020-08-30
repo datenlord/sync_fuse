@@ -122,9 +122,11 @@ fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
 #[cfg(not(target_os = "macos"))]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-    let (atime_secs, atime_nanos) = time_from_system_time(&attr.atime).unwrap();
-    let (m_time_secs, m_time_nanos) = time_from_system_time(&attr.mtime).unwrap();
-    let (c_time_secs, c_time_nanos) = time_from_system_time(&attr.ctime).unwrap();
+    let (atime_secs, atime_nanos) = time_from_system_time(&attr.atime).unwrap_or_else(|_| panic!());
+    let (m_time_secs, m_time_nanos) =
+        time_from_system_time(&attr.mtime).unwrap_or_else(|_| panic!());
+    let (c_time_secs, c_time_nanos) =
+        time_from_system_time(&attr.ctime).unwrap_or_else(|_| panic!());
 
     fuse_attr {
         ino: attr.ino,

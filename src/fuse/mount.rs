@@ -78,6 +78,7 @@ pub fn get_mount_options_map() -> HashMap<String, FuseMountOption> {
             .collect::<Vec<_>>()
             .get(0)
             .unwrap_or_else(|| panic!("Indexing is out of bounds"))
+            .to_owned()
             .to_string();
         let val = op;
 
@@ -106,7 +107,12 @@ mod param {
     fn add_option(options: &Option<String>, option: &str) -> Option<String> {
         match options {
             None => Some(String::from(option)),
-            Some(s) => Some(s.to_owned() + "," + option),
+            Some(s) => {
+                let mut op = s.to_owned();
+                op.push_str(",");
+                op.push_str(option);
+                Some(op)
+            }
         }
     }
 
@@ -132,7 +138,7 @@ mod param {
 
         /// Parse fsname
         fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
-            let name = String::from(option.split('=').last().unwrap()); //Safe to use unwrap here, becuase option is always valid.
+            let name = String::from(option.split('=').last().unwrap_or_else(|| panic!())); //Safe to use unwrap here, becuase option is always valid.
             args.fsname = Some(name);
             args.fusermount_opts = add_option(&args.fusermount_opts, option);
         }
@@ -142,9 +148,15 @@ mod param {
         }
         /// Match key value
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
-            let name = String::from(mount_option.name.split('=').next().unwrap()); //Safe to use unwrap here, becuase name is always valid.
+            let name = String::from(
+                mount_option
+                    .name
+                    .split('=')
+                    .next()
+                    .unwrap_or_else(|| panic!()),
+            ); //Safe to use unwrap here, becuase name is always valid.
             let regex_str = format!(r"^{}=[^\s]+$", name);
-            let option_regex = Regex::new(regex_str.as_str()).unwrap(); //Safe to use unwrap here, becuase regex_str is always valid.
+            let option_regex = Regex::new(regex_str.as_str()).unwrap_or_else(|_| panic!()); //Safe to use unwrap here, becuase regex_str is always valid.
             option_regex.is_match(option)
         }
         vec![
@@ -216,9 +228,15 @@ mod param {
             };
             let mount_options_map = super::get_mount_options_map();
             options.iter().for_each(|op| {
-                let key = op.split('=').collect::<Vec<_>>()[0].to_string();
-                let option = mount_options_map.get(&key).unwrap(); // Safe to use unwrap here, because key always exists
-                (option.parser)(&mut args, &option, &op)
+                let key = op
+                    .split('=')
+                    .collect::<Vec<_>>()
+                    .get(0)
+                    .unwrap_or_else(|| panic!("Indexing is out of bounds"))
+                    .to_owned()
+                    .to_string();
+                let option = mount_options_map.get(&key).unwrap_or_else(|| panic!()); // Safe to use unwrap here, because key always exists
+                (option.parser)(&mut args, option, op)
             });
             args
         }
@@ -494,12 +512,12 @@ pub fn umount(short_path: &Path) -> i32 {
             .arg("-uz") // lazy umount
             .arg(mntpnt)
             .output()
-            .expect("fusermount command failed to start");
+            .unwrap_or_else(|_| panic!("fusermount command failed to start"));
         if umount_handle.status.success() {
             0
         } else {
             // should be safe to use unwrap() here
-            let stderr = String::from_utf8(umount_handle.stderr).unwrap();
+            let stderr = String::from_utf8(umount_handle.stderr).unwrap_or_else(|_| panic!());
             debug!("fusermount failed to umount: {}", stderr);
             -1
         }
@@ -538,7 +556,7 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
         None,
         SockFlag::empty(),
     )
-    .expect("failed to create socket pair");
+    .unwrap_or_else(|_| panic!("failed to create socket pair"));
 
     // Default options
     let mut opts = String::from("nosuid,nodev,noexec,nonempty");
@@ -565,21 +583,22 @@ fn fuser_mount(mount_point: &Path, options: &[&str]) -> RawFd {
         .arg(mount_point.as_os_str())
         .env("_FUSE_COMMFD", remote.to_string())
         .output()
-        .expect("fusermount command failed to start");
+        .unwrap_or_else(|_| panic!("fusermount command failed to start"));
 
     assert!(mount_handle.status.success());
 
     let mut buf = [0_u8; 5];
     let iov = [IoVec::from_mut_slice(&mut buf[..])];
+    #[allow(clippy::integer_arithmetic)]
     let mut cmsgspace = cmsg_space!([RawFd; 1]);
     let msg = socket::recvmsg(local, &iov, Some(&mut cmsgspace), MsgFlags::empty())
-        .expect("failed to receive from fusermount");
+        .unwrap_or_else(|_| panic!("failed to receive from fusermount"));
 
     let mut mount_fd = -1;
     for cmsg in msg.cmsgs() {
         if let ControlMessageOwned::ScmRights(fd) = cmsg {
             assert_eq!(fd.len(), 1);
-            mount_fd = fd[0];
+            mount_fd = *fd.get(0).unwrap_or_else(|| panic!());
         } else {
             panic!("unexpected cmsg");
         }
@@ -610,10 +629,11 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
         }
     }
 
-    let full_path = fs::canonicalize(mount_point).expect("fail to get full path of mount point");
+    let full_path = fs::canonicalize(mount_point)
+        .unwrap_or_else(|_| panic!("fail to get full path of mount point"));
     let cstr_path = full_path
         .to_str()
-        .expect("full mount path to string failed");
+        .unwrap_or_else(|| panic!("full mount path to string failed"));
 
     let mnt_sb: FileStat;
     let result = stat::stat(&full_path);
@@ -625,13 +645,13 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
         }
     }
 
-    let mntpath = CString::new(cstr_path).expect("CString::new failed");
+    let mntpath = CString::new(cstr_path).unwrap_or_else(|_| panic!("CString::new failed"));
     let fsname = if let Some(s) = args.get_fsname() {
-        CString::new(&s[..]).expect("CString::new failed")
+        CString::new(&s[..]).unwrap_or_else(|_| panic!("CString::new failed"))
     } else if let Some(s) = args.get_subtype() {
-        CString::new(&s[..]).expect("CString::new failed")
+        CString::new(&s[..]).unwrap_or_else(|_| panic!("CString::new failed"))
     } else {
-        CString::new("/dev/fuse").expect("CString::new failed")
+        CString::new("/dev/fuse").unwrap_or_else(|_| panic!("CString::new failed"))
     };
 
     let mut fstype = if args.get_blkdev() == 0 {
@@ -643,7 +663,7 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
         fstype.push('.');
         fstype.push_str(s);
     }
-    let fstype = CString::new(fstype).expect("CString::new failed");
+    let fstype = CString::new(fstype).unwrap_or_else(|_| panic!("CString::new failed"));
 
     let mut opts = format!(
         "fd={},rootmode={:o},user_id={},group_id={}",
@@ -654,9 +674,10 @@ fn direct_mount(mount_point: &Path, options: &[&str]) -> RawFd {
     );
     let kernel_opts = args.get_kernel_opts();
     if let Some(s) = kernel_opts {
-        opts = opts + "," + s;
+        opts.push_str(",");
+        opts.push_str(s);
     }
-    let opts = CString::new(&*opts).expect("CString::new failed");
+    let opts = CString::new(&*opts).unwrap_or_else(|_| panic!("CString::new failed"));
     let flag = MS_NOSUID | MS_NODEV | args.get_flags();
     debug!("direct mount opts: {:?}", &opts);
     #[allow(unsafe_code)]
