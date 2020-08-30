@@ -48,8 +48,8 @@ pub trait Reply {
 
 /// Serialize an arbitrary type to bytes (memory copy, useful for fuse_*_out types)
 fn as_bytes<T, U, F: FnOnce(&[&[u8]]) -> U>(data: &T, f: F) -> U {
-    let len = mem::size_of::<T>();
-    match len {
+    let length = mem::size_of::<T>();
+    match length {
         0 => f(&[]),
         len => {
             let p: *const u8 = conversion::cast_to_ptr(data);
@@ -87,10 +87,10 @@ fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
 #[cfg(target_os = "macos")]
 fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
     // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-    let (a_time_secs, a_time_nanos) = time_from_system_time(&attr.atime).unwrap();
-    let (m_time_secs, m_time_nanos) = time_from_system_time(&attr.mtime).unwrap();
-    let (c_time_secs, c_time_nanos) = time_from_system_time(&attr.ctime).unwrap();
-    let (create_time_secs, create_time_nanos) = time_from_system_time(&attr.crtime).unwrap();
+    let (a_time_secs, a_time_nanos) = time_from_system_time(&attr.atime).unwrap_or_else(|_| panic!());
+    let (m_time_secs, m_time_nanos) = time_from_system_time(&attr.mtime).unwrap_or_else(|_| panic!());
+    let (c_time_secs, c_time_nanos) = time_from_system_time(&attr.ctime).unwrap_or_else(|_| panic!());
+    let (create_time_secs, create_time_nanos) = time_from_system_time(&attr.crtime).unwrap_or_else(|_| panic!());
 
     fuse_attr {
         ino: attr.ino,
@@ -176,7 +176,7 @@ impl<T> ReplyRaw<T> {
             unique: self.unique,
         };
         as_bytes(&header, |headerbytes| {
-            let sender = self.sender.take().unwrap();
+            let sender = self.sender.take().unwrap_or_else(|| panic!());
             let mut sendbytes = headerbytes.to_vec();
             sendbytes.extend(bytes);
             sender.send(&sendbytes);
@@ -357,8 +357,8 @@ impl ReplyXTimes {
     #[allow(dead_code)]
     pub fn xtimes(self, bkuptime: SystemTime, crtime: SystemTime) {
         // FIXME: unwrap may panic, use unwrap_or((0, 0)) or return a result instead?
-        let (bkuptime_secs, bkuptime_nanos) = time_from_system_time(&bkuptime).unwrap();
-        let (crtime_secs, crtime_nanos) = time_from_system_time(&crtime).unwrap();
+        let (bkuptime_secs, bkuptime_nanos) = time_from_system_time(&bkuptime).unwrap_or_else(|_| panic!());
+        let (crtime_secs, crtime_nanos) = time_from_system_time(&crtime).unwrap_or_else(|_| panic!());
         self.reply.ok(&fuse_getxtimes_out {
             bkuptime: bkuptime_secs,
             crtime: crtime_secs,
@@ -642,14 +642,14 @@ impl ReplyDirectory {
             // The following serialization won't produce error
             // because the size is checked before
             // TODO: Change the Param to use fuse_dirent directly
-            bincode::serialize_into(&mut self.data, &ino).unwrap();
-            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap();
-            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap();
+            bincode::serialize_into(&mut self.data, &ino).unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(offset.cast::<u64>())).unwrap_or_else(|_| panic!());
+            bincode::serialize_into(&mut self.data, &(name_bytes.len().cast::<u32>())).unwrap_or_else(|_| panic!());
             bincode::serialize_into(
                 &mut self.data,
                 &(mode_from_kind_and_perm(kind, 0).overflow_shr(12)),
             )
-            .unwrap();
+            .unwrap_or_else(|_| panic!());
             let p1 = p.add(mem::size_of::<fuse_dirent>());
             ptr::copy_nonoverlapping(name_bytes.as_ptr(), p1, name_bytes.len());
             let p2 = p1.add(name_bytes.len());
