@@ -1,10 +1,13 @@
+//! Fuse Low Level
 use log::debug;
 use std::ffi::OsStr;
 use std::path::Path;
 
 use clap::{App, Arg};
 
+/// Fuse module
 mod fuse;
+/// Memfs module
 mod memfs;
 
 use memfs::MemoryFilesystem;
@@ -94,8 +97,8 @@ mod test {
         let lock = RwLock::new(map);
         let mut map = lock.write().unwrap();
 
-        let e1 = map.get_mut(k1).unwrap() as *mut _;
-        let e2 = map.get_mut(k2).unwrap() as *mut _;
+        let e1: *mut _ = map.get_mut(k1).unwrap();
+        let e2: *mut _ = map.get_mut(k2).unwrap();
         //std::mem::swap(e1, e2);
         unsafe {
             ptr::swap(e1, e2);
