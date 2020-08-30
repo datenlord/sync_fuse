@@ -142,6 +142,7 @@ mod util {
     /// Read attr
     pub fn read_attr(fd: RawFd) -> Result<FileAttr, nix::Error> {
         #[cfg(target_os = "macos")]
+        /// Build crtime
         fn build_crtime(st: &FileStat) -> Option<SystemTime> {
             UNIX_EPOCH.checked_add(Duration::new(
                 st.st_birthtime.cast(),

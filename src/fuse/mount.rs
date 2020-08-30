@@ -294,55 +294,85 @@ mod param {
     pub const MNT_NOATIME: i32 = 0x1000_0000; // disable update of file access time
 
     #[allow(dead_code)]
+    /// Fuse default configs
     pub mod fuse_default_configs {
+        /// Page size
         pub const PAGE_SIZE: u32 = 4096;
 
+        /// Fuse fssubtype unknown
         pub const FUSE_FSSUBTYPE_UNKNOWN: u32 = 0;
 
+        /// Fuse default blocksize
         pub const FUSE_DEFAULT_BLOCKSIZE: u32 = 4096;
+        /// Fuse default daemon timeout
         pub const FUSE_DEFAULT_DAEMON_TIMEOUT: u32 = 60; // seconds
+        /// Fuse default iosize
         pub const FUSE_DEFAULT_IOSIZE: u32 = 16 * PAGE_SIZE;
     }
     pub use fuse_default_configs::*;
 
+    /// Fuse ioc magic
     pub const FUSE_IOC_MAGIC: u8 = b'F';
+    /// Fuse ioc type mode
     pub const FUSE_IOC_TYPE_MODE: u8 = 5;
 
     #[allow(dead_code)]
+    /// Fuse mopt configs
     pub mod fuse_mopt_configs {
+        /// Fuse mopt allow other
         pub const FUSE_MOPT_ALLOW_OTHER: u64 = 0x0000_0000_0000_0001;
+        /// Fuse mopt debug
         pub const FUSE_MOPT_DEBUG: u64 = 0x0000_0000_0000_0040;
+        /// Fuse mopt fsname
         pub const FUSE_MOPT_FSNAME: u64 = 0x0000_0000_0000_1000;
+        /// Fuse mopt no applexattr
         pub const FUSE_MOPT_NO_APPLEXATTR: u64 = 0x0000_0000_0080_0000;
     }
     pub use fuse_mopt_configs::*;
 
     use libc::size_t;
+    /// Type name len
     pub const MFSTYPENAMELEN: size_t = 16; // length of fs type name including null
+    /// Max path len
     pub const MAXPATHLEN: size_t = 1024; //PATH_MAX
 
     #[repr(C)]
+    /// Fuse mount args
     pub struct FuseMountArgs {
-        mntpath: [u8; MAXPATHLEN],        // path to the mount point
-        fsname: [u8; MAXPATHLEN],         // file system description string
+        /// Mnt path
+        mntpath: [u8; MAXPATHLEN], // path to the mount point
+        /// Fsname
+        fsname: [u8; MAXPATHLEN], // file system description string
+        /// Fs type name
         fstypename: [u8; MFSTYPENAMELEN], // file system type name
-        volname: [u8; MAXPATHLEN],        // volume name
-        altflags: u64,                    // see mount-time flags below
-        blocksize: u32,                   // fictitious block size of our "storage"
-        daemon_timeout: u32,              // timeout in seconds for upcalls to daemon
-        fsid: u32,                        // optional custom value for part of fsid[0]
-        fssubtype: u32,                   // file system sub type id
-        iosize: u32,                      // maximum size for reading or writing
-        random: u32,                      // random "secret" from device
-        rdev: u32,                        // dev_t for the /dev/osxfuse{n} in question
+        /// Vol name
+        volname: [u8; MAXPATHLEN], // volume name
+        /// Alt flags
+        altflags: u64, // see mount-time flags below
+        /// Block size
+        blocksize: u32, // fictitious block size of our "storage"
+        /// Daemon timeout
+        daemon_timeout: u32, // timeout in seconds for upcalls to daemon
+        /// Fsid
+        fsid: u32, // optional custom value for part of fsid[0]
+        /// Fssubtype
+        fssubtype: u32, // file system sub type id
+        /// Iosize
+        iosize: u32, // maximum size for reading or writing
+        /// Random
+        random: u32, // random "secret" from device
+        /// Rdev
+        rdev: u32, // dev_t for the /dev/osxfuse{n} in question
     }
 
     use super::FuseMountOption;
     use regex::Regex;
     /// Get mount options
     pub fn get_mount_options() -> Vec<FuseMountOption> {
+        /// Empty parser
         fn empty_parser(_args: &mut FuseMountArgs, _mount_option: &FuseMountOption, _option: &str) {
         }
+        /// Parse fuse flag
         fn parse_fuse_flag(
             args: &mut FuseMountArgs,
             mount_option: &FuseMountOption,
@@ -353,6 +383,7 @@ mod param {
             }
         }
 
+        /// Parse fsname
         fn parse_fsname(args: &mut FuseMountArgs, _mount_option: &FuseMountOption, option: &str) {
             let name = String::from(option.split('=').last().unwrap_or_else(|| panic!())); //Safe to use unwrap here, becuase option is always valid.
             copy_slice(
@@ -362,9 +393,11 @@ mod param {
                 &mut args.fsname,
             );
         }
+        /// Match name
         fn name_match(mount_option: &FuseMountOption, option: &str) -> bool {
             option == mount_option.name
         }
+        /// Match key value
         fn key_value_match(mount_option: &FuseMountOption, option: &str) -> bool {
             let name = String::from(
                 mount_option
@@ -405,6 +438,7 @@ mod param {
 
     use std::ffi::CString;
     impl FuseMountArgs {
+        /// Parse
         pub fn parse(options: &[&str]) -> Self {
             let fsname = CString::new("macfuse").unwrap_or_else(|_| panic!("CString::new failed"));
             let fstypename = CString::new("").unwrap_or_else(|_| panic!("CString::new failed"));
@@ -440,6 +474,7 @@ mod param {
                     .collect::<Vec<_>>()
                     .get(0)
                     .unwrap_or_else(|| panic!("Indexing is out of bounds"))
+                    .to_owned()
                     .to_string();
                 let option = mount_options_map.get(&key).unwrap_or_else(|| panic!()); // Safe to use unwrap here, because key always exists
                 (option.parser)(&mut args, option, op)

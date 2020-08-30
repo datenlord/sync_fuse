@@ -605,8 +605,8 @@ pub trait Filesystem {
         reply.error(ENOSYS);
     }
 
-    /// macOS only: Rename the volume. Set fuse_init_out.flags during init to
-    /// FUSE_VOL_RENAME to enable
+    /// macOS only: Rename the volume. Set `fuse_init_out.flags` during init to
+    /// `FUSE_VOL_RENAME` to enable
     #[cfg(target_os = "macos")]
     fn setvolname(&mut self, _req: &Request<'_>, _name: &OsStr, reply: ReplyEmpty) {
         reply.error(ENOSYS);
@@ -618,8 +618,8 @@ pub trait Filesystem {
         reply.error(ENOSYS);
     }
 
-    /// macOS only: Query extended times (bkuptime and crtime). Set fuse_init_out.flags
-    /// during init to FUSE_XTIMES to enable
+    /// macOS only: Query extended times (bkuptime and crtime). Set `fuse_init_out.flags`
+    /// during init to `FUSE_XTIMES` to enable
     #[cfg(target_os = "macos")]
     fn getxtimes(&mut self, _req: &Request<'_>, _ino: u64, reply: ReplyXTimes) {
         reply.error(ENOSYS);
