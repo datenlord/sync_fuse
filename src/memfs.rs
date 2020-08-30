@@ -1659,16 +1659,8 @@ impl Filesystem for MemoryFilesystem {
             param.data.len(),
             param.ino,
             param.offset,
-<<<<<<< HEAD
             if let Some(data) = param.data.get(0..100) {
                 data
-=======
-            if param.data.len() > 100 {
-                &param.data.get(0..100).unwrap_or_else(|| panic!())
-<<<<<<< HEAD
->>>>>>> Fix some lint issues
-=======
->>>>>>> 119c4e4a6e90c5870ca7423b00f6d505025ec7ce
             } else {
                 param.data
             }
