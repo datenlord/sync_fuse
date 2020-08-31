@@ -18,9 +18,6 @@
 //!
 //! Items without a version annotation are valid with ABI 7.8 and later
 
-#![warn(missing_debug_implementations, rust_2018_idioms)]
-#![allow(missing_docs)]
-
 use std::convert::TryFrom;
 
 /// fuse kernel version

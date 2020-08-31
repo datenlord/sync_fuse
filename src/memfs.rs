@@ -320,7 +320,7 @@ impl INode {
     }
 
     /// Get type
-    fn get_type(&self) -> Type {
+    const fn get_type(&self) -> Type {
         match self {
             Self::DIR(_) => Type::Directory,
             Self::FILE(_) => Type::File,
@@ -1768,11 +1768,7 @@ impl Filesystem for MemoryFilesystem {
             param.data.len(),
             param.ino,
             param.offset,
-            if let Some(data) = param.data.get(0..100) {
-                data
-            } else {
-                param.data
-            }
+            param.data.get(0..100).map_or(param.data, |data| data)
         );
     }
 
