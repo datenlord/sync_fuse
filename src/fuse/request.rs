@@ -367,10 +367,8 @@ impl<'a> Request<'a> {
                 );
             }
             ll_request::Operation::Release { arg } => {
-                let flush_parameter = match arg.release_flags & FUSE_RELEASE_FLUSH {
-                    0 => false,
-                    _ => true,
-                };
+                let flush_parameter = !matches!(arg.release_flags & FUSE_RELEASE_FLUSH, 0);
+
                 se.filesystem.release(
                     self,
                     FsReleaseParam {
@@ -384,10 +382,7 @@ impl<'a> Request<'a> {
                 );
             }
             ll_request::Operation::FSync { arg } => {
-                let datasync = match arg.fsync_flags & 1 {
-                    0 => false,
-                    _ => true,
-                };
+                let datasync = !matches!(arg.fsync_flags & 1, 0);
                 se.filesystem
                     .fsync(self, self.request.nodeid(), arg.fh, datasync, self.reply());
             }
@@ -414,10 +409,7 @@ impl<'a> Request<'a> {
                 );
             }
             ll_request::Operation::FSyncDir { arg } => {
-                let datasync = match arg.fsync_flags & 1 {
-                    0 => false,
-                    _ => true,
-                };
+                let datasync = !matches!(arg.fsync_flags & 1, 0);
                 se.filesystem
                     .fsyncdir(self, self.request.nodeid(), arg.fh, datasync, self.reply());
             }
