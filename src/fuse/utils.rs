@@ -3,7 +3,8 @@ use std::any::type_name;
 
 macro_rules! impl_overflow_arithmetic {
     ($target: ty) => {
-        impl OverflowArithmetic<$target> for $target {
+        #[allow(clippy::use_self)]
+        impl OverflowArithmetic for $target {
             #[inline]
             fn overflow_add(self, other: Self) -> Self {
                 let (res, overflow) = self.overflowing_add(other);
@@ -76,6 +77,7 @@ macro_rules! impl_overflow_arithmetic {
         }
     };
 }
+
 impl_overflow_arithmetic!(u8);
 impl_overflow_arithmetic!(u16);
 impl_overflow_arithmetic!(u32);
@@ -90,7 +92,7 @@ impl_overflow_arithmetic!(usize);
 impl_overflow_arithmetic!(isize);
 
 /// A type cast trait used to do the integer arithmetic.
-pub trait OverflowArithmetic<T> {
+pub trait OverflowArithmetic {
     /// Overflow add.
     fn overflow_add(self, other: Self) -> Self;
 
