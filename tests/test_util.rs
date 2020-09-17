@@ -36,10 +36,7 @@ pub fn setup(mount_dir: &Path) -> JoinHandle<()> {
         //"debug",
         "fsname=fuse_rs_demo",
         //"allow_other",
-    ]
-    .iter()
-    .map(|o| o.as_ref())
-    .collect::<Vec<&str>>();
+    ];
 
     let fs = MemoryFilesystem::new(&abs_root_path);
 

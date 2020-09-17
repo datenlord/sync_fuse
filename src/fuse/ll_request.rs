@@ -206,6 +206,8 @@ pub enum Operation<'a> {
     // CuseInit {
     //     arg: &'a fuse_init_in,
     // },
+    #[allow(dead_code)]
+    NoImplementation,
 }
 
 impl fmt::Display for Operation<'_> {
@@ -254,11 +256,13 @@ impl fmt::Display for Operation<'_> {
             Operation::GetXTimes => write!(f, "GETXTIMES"),
             #[cfg(target_os = "macos")]
             Operation::Exchange { arg, oldname, newname } => write!(f, "EXCHANGE olddir {:#018x}, oldname {:?}, newdir {:#018x}, newname {:?}, options {:#x}", arg.olddir, oldname, arg.newdir, newname, arg.options),
+            Operation::NoImplementation => write!(f, "No implementation"),
         }
     }
 }
 
 impl<'a> Operation<'a> {
+    #[allow(clippy::too_many_lines)]
     /// Parse
     fn parse(opcode: &fuse_opcode, data: &mut FuseArgumentIterator<'a>) -> Option<Self> {
         #[allow(unsafe_code)]
@@ -350,6 +354,18 @@ impl<'a> Operation<'a> {
                     oldname: data.fetch_str()?,
                     newname: data.fetch_str()?,
                 },
+                #[cfg(any(
+                    feature = "abi-7-11",
+                    feature = "abi-7-12",
+                    feature = "abi-7-15",
+                    feature = "abi-7-16"
+                ))]
+                fuse_opcode::FUSE_IOCTL
+                | fuse_opcode::FUSE_POLL
+                | fuse_opcode::FUSE_NOTIFY_REPLY
+                | fuse_opcode::FUSE_BATCH_FORGET
+                | fuse_opcode::FUSE_FALLOCATE
+                | fuse_opcode::CUSE_INIT => Operation::NoImplementation,
             })
         }
     }
@@ -702,7 +718,7 @@ mod tests {
     fn short_read_header() {
         match Request::try_from(&INIT_REQUEST[..20]) {
             Err(RequestError::ShortReadHeader(20)) => (),
-            _ => panic!("Unexpected request parsing result"),
+            Ok(..) | Err(..) => panic!("Unexpected request parsing result"),
         }
     }
 
@@ -710,7 +726,7 @@ mod tests {
     fn short_read() {
         match Request::try_from(&INIT_REQUEST[..48]) {
             Err(RequestError::ShortRead(48, 56)) => (),
-            _ => panic!("Unexpected request parsing result"),
+            Ok(..) | Err(..) => panic!("Unexpected request parsing result"),
         }
     }
 

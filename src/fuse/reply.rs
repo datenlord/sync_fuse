@@ -143,6 +143,10 @@ fn fuse_attr_from_attr(attr: &FileAttr) -> fuse_attr {
         uid: attr.uid,
         gid: attr.gid,
         rdev: attr.rdev,
+        #[cfg(feature = "abi-7-9")]
+        blksize: 0_u32,
+        #[cfg(feature = "abi-7-9")]
+        padding: 0_u32,
     }
 }
 
@@ -761,8 +765,7 @@ mod test {
 
     #[test]
     fn serialize_empty() {
-        let data = ();
-        as_bytes(&data, |bytes| {
+        as_bytes(&(), |bytes| {
             assert!(bytes.is_empty());
         });
     }
@@ -1218,7 +1221,7 @@ mod test {
 
     impl super::ReplySender for Sender<()> {
         fn send(&self, _: &[&[u8]]) {
-            Sender::send(self, ()).unwrap_or_else(|_| panic!())
+            Self::send(self, ()).unwrap_or_else(|_| panic!())
         }
     }
 
