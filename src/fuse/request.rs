@@ -182,7 +182,12 @@ impl<'a> Request<'a> {
                         arg.max_readahead
                     }, // TODO: adjust BUFFER_SIZE according to max_readahead
                     flags: arg.flags & INIT_FLAGS, // use features given in INIT_FLAGS and reported as capable
+                    #[cfg(not(feature = "abi-7-13"))]
                     unused: 0,
+                    #[cfg(feature = "abi-7-13")]
+                    max_background: 0_u16,
+                    #[cfg(feature = "abi-7-13")]
+                    congestion_threshold: 0_u16,
                     max_write: MAX_WRITE_SIZE.cast(), // TODO: use a max write size that fits into the session's buffer
                 };
                 debug!(
@@ -540,6 +545,9 @@ impl<'a> Request<'a> {
                     },
                     self.reply(),
                 );
+            }
+            ll_request::Operation::NoImplementation => {
+                error!("Operation is not implemented!");
             }
         }
     }

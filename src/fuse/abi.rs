@@ -219,7 +219,7 @@ pub mod consts {
     /// Fuse file ops
     pub const FUSE_FILE_OPS: u32 = 1 << 2; // kernel sends file handle for fstat, etc...
     #[cfg(feature = "abi-7-9")]
-    /// Fuse atomic O_TRUNC
+    /// Fuse atomic `O_TRUNC`
     pub const FUSE_ATOMIC_O_TRUNC: u32 = 1 << 3; // handles the O_TRUNC open flag in the filesystem
     #[cfg(feature = "abi-7-10")]
     /// Fuse export support
@@ -472,18 +472,25 @@ pub struct InvalidNotifyCodeError;
 #[repr(C)]
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
+/// Fuse notify code
 pub enum fuse_notify_code {
     #[cfg(feature = "abi-7-11")]
+    /// Fuse poll
     FUSE_POLL = 1,
     #[cfg(feature = "abi-7-12")]
+    /// Fuse notify inval inode
     FUSE_NOTIFY_INVAL_INODE = 2,
     #[cfg(feature = "abi-7-12")]
+    /// Fuse notify inval entry
     FUSE_NOTIFY_INVAL_ENTRY = 3,
     #[cfg(feature = "abi-7-15")]
+    /// Fuse notify store
     FUSE_NOTIFY_STORE = 4,
     #[cfg(feature = "abi-7-15")]
+    /// Fuse notify retrieve
     FUSE_NOTIFY_RETRIEVE = 5,
     #[cfg(feature = "abi-7-18")]
+    /// Fuse notify delete
     FUSE_NOTIFY_DELETE = 6,
 }
 
@@ -494,17 +501,17 @@ impl TryFrom<u32> for fuse_notify_code {
     fn try_from(n: u32) -> Result<Self, Self::Error> {
         match n {
             #[cfg(feature = "abi-7-11")]
-            1 => Ok(fuse_notify_code::FUSE_POLL),
+            1 => Ok(Self::FUSE_POLL),
             #[cfg(feature = "abi-7-12")]
-            2 => Ok(fuse_notify_code::FUSE_NOTIFY_INVAL_INODE),
+            2 => Ok(Self::FUSE_NOTIFY_INVAL_INODE),
             #[cfg(feature = "abi-7-12")]
-            3 => Ok(fuse_notify_code::FUSE_NOTIFY_INVAL_ENTRY),
+            3 => Ok(Self::FUSE_NOTIFY_INVAL_ENTRY),
             #[cfg(feature = "abi-7-15")]
-            4 => Ok(fuse_notify_code::FUSE_NOTIFY_STORE),
+            4 => Ok(Self::FUSE_NOTIFY_STORE),
             #[cfg(feature = "abi-7-15")]
-            5 => Ok(fuse_notify_code::FUSE_NOTIFY_RETRIEVE),
+            5 => Ok(Self::FUSE_NOTIFY_RETRIEVE),
             #[cfg(feature = "abi-7-18")]
-            6 => Ok(fuse_notify_code::FUSE_NOTIFY_DELETE),
+            6 => Ok(Self::FUSE_NOTIFY_DELETE),
 
             _ => Err(InvalidNotifyCodeError),
         }
@@ -544,7 +551,9 @@ pub struct fuse_forget_in {
 #[derive(Debug)]
 /// Fuse forget one
 pub struct fuse_forget_one {
+    /// Node id
     pub nodeid: u64,
+    /// Nlookup
     pub nlookup: u64,
 }
 
@@ -1019,7 +1028,7 @@ pub struct cuse_init_out {
     pub dev_major: u32, // chardev major
     /// Dev minor
     pub dev_minor: u32, // chardev minor
-    // Spare
+    /// Spare
     pub spare: [u32; 10],
 }
 
